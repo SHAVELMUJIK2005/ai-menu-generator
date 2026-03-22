@@ -13,7 +13,7 @@ export default function DislikedProductsPage() {
   const navigate = useNavigate()
 
   const handleDone = () => {
-    console.log('Онбординг завершён:', useOnboardingStore.getState())
+    localStorage.setItem('onboarding_done', '1')
     navigate('/budget')
   }
 

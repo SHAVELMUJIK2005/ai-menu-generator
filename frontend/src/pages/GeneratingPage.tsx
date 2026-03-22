@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import ErrorScreen from '../components/ErrorScreen'
 
 const MESSAGES = [
   'AI анализирует ваш профиль...',
@@ -14,23 +15,26 @@ export default function GeneratingPage() {
   const navigate = useNavigate()
   const [msgIndex, setMsgIndex] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [error, setError] = useState<'network' | 'generation' | null>(null)
 
-  useEffect(() => {
-    // меняем текст каждые 2 секунды
+  const start = () => {
+    setError(null)
+    setProgress(0)
+
     const msgInterval = setInterval(() => {
       setMsgIndex((i) => (i + 1) % MESSAGES.length)
     }, 2000)
 
-    // фейковый прогресс 30 сек до 90%
     const startTime = Date.now()
     const progressInterval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000
-      const fakeProgress = Math.min(90, (elapsed / 30) * 90)
-      setProgress(fakeProgress)
+      setProgress(Math.min(90, (elapsed / 30) * 90))
     }, 200)
 
-    // через 4 сек — переходим (мок, без реального API)
+    // мок: через 4 сек переходим на /menu
     const timer = setTimeout(() => {
+      clearInterval(msgInterval)
+      clearInterval(progressInterval)
       setProgress(100)
       setTimeout(() => navigate('/menu'), 400)
     }, 4000)
@@ -40,14 +44,26 @@ export default function GeneratingPage() {
       clearInterval(progressInterval)
       clearTimeout(timer)
     }
-  }, [navigate])
+  }
+
+  useEffect(() => {
+    // проверка сети
+    if (!navigator.onLine) {
+      setError('network')
+      return
+    }
+    return start()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (error) {
+    return <ErrorScreen type={error} onRetry={() => start()} />
+  }
 
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen gap-10 p-6"
       style={{ background: 'var(--color-bg)' }}
     >
-      {/* пульсирующий круг */}
       <div className="relative flex items-center justify-center">
         <motion.div
           animate={{ scale: [0.8, 1.2, 0.8] }}
@@ -69,7 +85,6 @@ export default function GeneratingPage() {
         </div>
       </div>
 
-      {/* сменяемый текст */}
       <AnimatePresence mode="wait">
         <motion.p
           key={msgIndex}
@@ -84,7 +99,6 @@ export default function GeneratingPage() {
         </motion.p>
       </AnimatePresence>
 
-      {/* прогресс-бар */}
       <div className="w-full max-w-xs">
         <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
           <motion.div

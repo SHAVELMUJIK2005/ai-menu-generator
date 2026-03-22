@@ -1,8 +1,8 @@
 import type { MenuResponse } from '../../../shared/src/types'
 
 export const menuMock: MenuResponse = {
-  totalCost: 2840,
-  budgetLeft: 160,
+  totalCost: 1240,
+  budgetLeft: 260,
   confidence: 'high',
   shoppingList: [
     { name: 'Куриная грудка', totalAmount: 600, unit: 'г', estimatedPrice: 228 },
@@ -24,7 +24,7 @@ export const menuMock: MenuResponse = {
   days: [
     {
       dayNumber: 1,
-      dayTotal: { cost: 940, calories: 1820, protein: 98, fat: 52, carbs: 210 },
+      dayTotal: { cost: 520, calories: 1380, protein: 69, fat: 40, carbs: 185 },
       meals: [
         {
           type: 'breakfast',
@@ -72,7 +72,7 @@ export const menuMock: MenuResponse = {
     },
     {
       dayNumber: 2,
-      dayTotal: { cost: 960, calories: 1790, protein: 95, fat: 55, carbs: 195 },
+      dayTotal: { cost: 440, calories: 1100, protein: 71, fat: 50, carbs: 87 },
       meals: [
         {
           type: 'breakfast',
@@ -117,7 +117,7 @@ export const menuMock: MenuResponse = {
     },
     {
       dayNumber: 3,
-      dayTotal: { cost: 940, calories: 1800, protein: 100, fat: 50, carbs: 205 },
+      dayTotal: { cost: 280, calories: 1360, protein: 50, fat: 60, carbs: 148 },
       meals: [
         {
           type: 'breakfast',

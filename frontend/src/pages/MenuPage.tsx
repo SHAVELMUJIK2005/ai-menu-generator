@@ -178,6 +178,7 @@ export default function MenuPage() {
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/shopping')}
             className="flex items-center justify-center gap-2 flex-1 py-3 rounded-2xl font-semibold text-sm text-white"
             style={{ background: 'var(--color-primary)' }}
           >

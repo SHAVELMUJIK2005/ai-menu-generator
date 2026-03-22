@@ -6,7 +6,11 @@ export default function SplashPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const timer = setTimeout(() => navigate('/onboarding'), 1800)
+    const timer = setTimeout(() => {
+      // если онбординг уже пройден — сразу на бюджет
+      const done = localStorage.getItem('onboarding_done')
+      navigate(done ? '/budget' : '/onboarding')
+    }, 1800)
     return () => clearTimeout(timer)
   }, [navigate])
 
@@ -14,7 +18,6 @@ export default function SplashPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       className="flex flex-col items-center justify-center min-h-screen gap-4"
       style={{ background: 'var(--color-bg)' }}
     >
