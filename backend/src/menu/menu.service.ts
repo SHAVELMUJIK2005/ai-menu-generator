@@ -52,10 +52,10 @@ export class MenuService {
       await this.checkRateLimit(userId);
     }
 
-    // Выбираем модель (premium — Claude, free — GPT-4.1-mini)
+    // Выбираем модель (premium — Claude, free — GPT-4o-mini)
     const aiModel = user.isPremium
       ? "anthropic/claude-sonnet-4-5"
-      : "openai/gpt-4.1-mini";
+      : "openai/gpt-4o-mini";
 
     // Проверяем кэш Redis
     const cacheKey = this.buildCacheKey(user, dto);
@@ -214,7 +214,7 @@ export class MenuService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException("Пользователь не найден", HttpStatus.NOT_FOUND);
 
-    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4.1-mini";
+    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
     const products = await this.productService.getForPrompt(user.dislikedProducts);
 
     const prompt = this.promptBuilder.buildFullPrompt(
