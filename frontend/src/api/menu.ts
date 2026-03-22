@@ -6,6 +6,20 @@ export interface GenerateMenuJobResponse {
   status: 'PENDING'
 }
 
+/** Полная запись меню из БД — возвращается при GET /menu/:id */
+export interface MenuRecord {
+  id: string
+  userId: string
+  status: 'PENDING' | 'DONE' | 'FAILED'
+  parsedMenu: MenuResponse | null
+  shoppingList: unknown
+  daysCount: number
+  budgetInput: number
+  aiModel: string | null
+  costUsd: number | null
+  createdAt: string
+}
+
 export async function generateMenu(request: GenerateMenuRequest): Promise<GenerateMenuJobResponse> {
   const { data } = await apiClient.post<GenerateMenuJobResponse>('/menu/generate', request)
   return data
@@ -16,8 +30,8 @@ export async function getMenuHistory(page = 1, limit = 20) {
   return data
 }
 
-export async function getMenu(id: string): Promise<MenuResponse> {
-  const { data } = await apiClient.get<MenuResponse>(`/menu/${id}`)
+export async function getMenu(id: string): Promise<MenuRecord> {
+  const { data } = await apiClient.get<MenuRecord>(`/menu/${id}`)
   return data
 }
 

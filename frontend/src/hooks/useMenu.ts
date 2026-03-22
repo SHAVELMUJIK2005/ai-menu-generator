@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { generateMenu, getMenuHistory, getMenu, rerollMenu, rateMenu, substituteMeal } from '../api/menu'
+import type { MenuRecord } from '../api/menu'
 import type { GenerateMenuRequest, RateMenuRequest, SubstituteMealRequest } from '../../../shared/src/types'
 
 /**
@@ -41,13 +42,12 @@ export function useMenuHistory(page = 1) {
  * Когда DONE или FAILED — останавливаемся.
  */
 export function useMenu(id: string) {
-  return useQuery({
+  return useQuery<MenuRecord>({
     queryKey: ['menu', id],
     queryFn: () => getMenu(id),
     enabled: !!id,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    refetchInterval: (query: any) => {
-      const status = (query.state?.data as any)?.status
+    refetchInterval: (query) => {
+      const status = (query.state?.data as MenuRecord | undefined)?.status
       if (status === 'PENDING') return 2000
       return false
     },

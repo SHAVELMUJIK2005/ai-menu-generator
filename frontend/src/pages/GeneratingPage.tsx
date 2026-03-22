@@ -6,7 +6,6 @@ import AvocadoMascot from '../components/AvocadoMascot'
 import { useGenerateMenu } from '../hooks/useMenu'
 import { useMenuStore } from '../store/menuStore'
 import { useOnboardingStore } from '../store/onboardingStore'
-import { menuMock } from '../mocks/menuMock'
 
 const MESSAGES = [
   'AI анализирует ваш профиль...',
@@ -23,8 +22,9 @@ export default function GeneratingPage() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState<'network' | 'generation' | 'limit' | null>(null)
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
+  const navigatedRef = useRef(false)
 
-  const { mutate: generateMenu } = useGenerateMenu()
+  const { mutate: generateMenu, menuData, menuStatus, isGenerating } = useGenerateMenu()
   const { setMenu, budget } = useMenuStore()
   const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
 
@@ -48,16 +48,31 @@ export default function GeneratingPage() {
   }
 
   const finishAndNavigate = () => {
+    if (navigatedRef.current) return
+    navigatedRef.current = true
     clearIntervals()
     setProgress(100)
     setDone(true)
     setTimeout(() => navigate('/menu'), 900)
   }
 
+  // Реагируем на изменение статуса меню от поллинга
+  useEffect(() => {
+    if (menuStatus === 'DONE' && menuData?.parsedMenu) {
+      setMenu(menuData.parsedMenu, menuData.id)
+      finishAndNavigate()
+    } else if (menuStatus === 'FAILED') {
+      clearIntervals()
+      setError('generation')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuStatus, menuData])
+
   const run = () => {
     if (!navigator.onLine) { setError('network'); return }
     setError(null)
     setProgress(0)
+    navigatedRef.current = false
     startAnimations()
 
     generateMenu(
@@ -72,10 +87,6 @@ export default function GeneratingPage() {
         dislikedProducts,
       },
       {
-        onSuccess: (data) => {
-          setMenu(data)
-          finishAndNavigate()
-        },
         onError: (err: unknown) => {
           const status = (err as { response?: { status?: number } })?.response?.status
           if (status === 429) {
@@ -83,9 +94,8 @@ export default function GeneratingPage() {
             setError('limit')
             return
           }
-          // бэкенд недоступен — используем мок
-          setMenu(menuMock)
-          finishAndNavigate()
+          clearIntervals()
+          setError('generation')
         },
       },
     )
@@ -97,6 +107,9 @@ export default function GeneratingPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <ErrorScreen type={error} onRetry={run} />
+
+  // Пока идёт генерация или поллинг — показываем анимацию
+  const showLoading = isGenerating || (!done && !error)
 
   return (
     <div
@@ -136,7 +149,7 @@ export default function GeneratingPage() {
           >
             ✓ Меню готово!
           </motion.p>
-        ) : (
+        ) : showLoading ? (
           <motion.p
             key={msgIndex}
             initial={{ opacity: 0, y: 10 }}
@@ -148,7 +161,7 @@ export default function GeneratingPage() {
           >
             {MESSAGES[msgIndex]}
           </motion.p>
-        )}
+        ) : null}
       </AnimatePresence>
 
       <div className="w-full max-w-xs">
