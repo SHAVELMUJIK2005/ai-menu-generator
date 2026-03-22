@@ -119,6 +119,26 @@ export class TelegramService implements OnModuleInit {
   }
 
   /**
+   * Отправить уведомление пользователю о готовом меню
+   */
+  async notifyMenuReady(telegramId: bigint, daysCount: number, totalCost: number, storeName?: string) {
+    if (!this.bot) return;
+    try {
+      const storeText = storeName ? ` для покупок в ${storeName}` : "";
+      await this.bot.telegram.sendMessage(
+        Number(telegramId),
+        `✅ *Меню на ${daysCount} ${daysCount === 1 ? "день" : daysCount < 5 ? "дня" : "дней"} готово!*\n\n` +
+        `💰 Бюджет: ~${totalCost} ₽${storeText}\n\n` +
+        `Открой приложение, чтобы посмотреть меню и список покупок 👇`,
+        { parse_mode: "Markdown" },
+      );
+    } catch (e) {
+      // Пользователь мог заблокировать бота — не падаем
+      this.logger.warn(`Не удалось отправить уведомление telegramId=${telegramId}:`, e);
+    }
+  }
+
+  /**
    * Обработка webhook-запроса от Telegram
    */
   async handleWebhook(body: object): Promise<void> {

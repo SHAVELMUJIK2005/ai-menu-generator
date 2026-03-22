@@ -1,10 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
-import { getStores } from '../api/stores'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { getStores, compareShoppingList } from '../api/stores'
 
 export function useStores() {
   return useQuery({
     queryKey: ['stores'],
     queryFn: getStores,
-    staleTime: Infinity, // список магазинов не меняется
+    staleTime: Infinity,
+  })
+}
+
+export function useComparePrices() {
+  return useMutation({
+    mutationFn: ({ items, region }: {
+      items: Array<{ name: string; totalAmount: number; unit?: string }>
+      region?: string
+    }) => compareShoppingList(items, region),
   })
 }

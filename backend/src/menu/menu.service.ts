@@ -14,6 +14,8 @@ import { MenuResponseSchema, MenuResponseType } from "./menu.schema";
 import { GenerateMenuDto } from "./dto/generate-menu.dto";
 import { MenuStatus, StoreChain, Region } from "@prisma/client";
 import { StoreService } from "../store/store.service";
+import { TelegramService } from "../telegram/telegram.service";
+import { STORE_LABELS } from "../store/store.service";
 
 const PROMPT_VERSION = "v1.0";
 const MAX_FREE_GENERATIONS_PER_DAY = 3;
@@ -31,6 +33,7 @@ export class MenuService {
     private readonly productService: ProductService,
     private readonly promptBuilder: PromptBuilderService,
     private readonly storeService: StoreService,
+    private readonly telegramService: TelegramService,
   ) {
     // OpenRouter совместим с OpenAI SDK
     this.openai = new OpenAI({
@@ -169,6 +172,12 @@ export class MenuService {
 
     // Кэшируем результат на 6 часов
     await this.redis.set(cacheKey, JSON.stringify(parsedMenu), CACHE_TTL_SECONDS);
+
+    // Уведомляем пользователя в Telegram (fire-and-forget)
+    const storeName = storeChain ? STORE_LABELS[storeChain] : undefined;
+    this.telegramService
+      .notifyMenuReady(user.telegramId, dto.days, parsedMenu.totalCost, storeName)
+      .catch(() => {}); // не блокируем ответ
 
     return parsedMenu;
   }

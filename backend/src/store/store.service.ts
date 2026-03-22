@@ -59,6 +59,75 @@ export class StoreService {
   }
 
   /**
+   * Сравнение итоговой стоимости списка покупок по всем магазинам
+   * shoppingList — массив { name, totalAmount } из меню
+   */
+  async compareShoppingList(
+    shoppingList: Array<{ name: string; totalAmount: number; unit?: string }>,
+    region: Region = Region.MOSCOW,
+  ) {
+    const productNames = shoppingList.map((i) => i.name);
+
+    const storePrices = await this.prisma.storePrices.findMany({
+      where: {
+        region,
+        product: { canonicalName: { in: productNames } },
+      },
+      include: { product: { select: { canonicalName: true, unit: true, avgPriceRub: true } } },
+    });
+
+    const stores = Object.values(StoreChain);
+
+    const result = stores.map((store) => {
+      let totalCost = 0;
+      let foundCount = 0;
+      const items: Array<{ name: string; price: number; isPromo: boolean }> = [];
+
+      for (const item of shoppingList) {
+        const sp = storePrices.find(
+          (p) => p.product.canonicalName === item.name && p.storeChain === store,
+        );
+
+        if (sp) {
+          // Цена за 100г/100мл/шт → масштабируем по количеству
+          const unitPrice = sp.isPromo && sp.promoPrice ? Number(sp.promoPrice) : Number(sp.priceRub);
+          // В нашей базе цены за 100г (или за шт), totalAmount в граммах/шт
+          const factor = sp.product.unit === "шт" ? item.totalAmount : item.totalAmount / 100;
+          const cost = Math.round(unitPrice * factor);
+
+          totalCost += cost;
+          foundCount++;
+          items.push({ name: item.name, price: unitPrice, isPromo: sp.isPromo });
+        } else {
+          // Продукт не найден в StorePrices — берём avg с multiplier
+          const avgPrice = Number(
+            storePrices.find((p) => p.product.canonicalName === item.name)?.product.avgPriceRub ?? 0,
+          );
+          const fallbackPrice = Math.round(avgPrice * STORE_MULTIPLIERS[store]);
+          const unit = storePrices.find((p) => p.product.canonicalName === item.name)?.product.unit ?? "г";
+          const factor = unit === "шт" ? item.totalAmount : item.totalAmount / 100;
+          totalCost += Math.round(fallbackPrice * factor);
+          items.push({ name: item.name, price: fallbackPrice, isPromo: false });
+        }
+      }
+
+      return {
+        store,
+        storeName: STORE_LABELS[store],
+        priceTag: this.getStores().find((s) => s.chain === store)?.priceTag ?? "₽₽",
+        totalCost,
+        foundCount,
+        totalItems: shoppingList.length,
+        items,
+      };
+    });
+
+    // Сортируем по цене, помечаем самый дешёвый
+    result.sort((a, b) => a.totalCost - b.totalCost);
+    return result.map((r, i) => ({ ...r, isCheapest: i === 0 }));
+  }
+
+  /**
    * Получить цены всех продуктов для конкретного магазина в формате Map<canonicalName, price>
    * Используется в PromptBuilder. Если StorePrices пусты — считаем через multiplier.
    */

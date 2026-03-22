@@ -1,8 +1,21 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/auth.guard";
 import { StoreService } from "./store.service";
 import { StoreChain, Region } from "@prisma/client";
+import { IsArray, IsNumber, IsOptional, IsString } from "class-validator";
+import { Type } from "class-transformer";
+
+class ShoppingItem {
+  @IsString() name: string;
+  @IsNumber() @Type(() => Number) totalAmount: number;
+  @IsOptional() @IsString() unit?: string;
+}
+
+class CompareShoppingListDto {
+  @IsArray() items: ShoppingItem[];
+  @IsOptional() region?: Region;
+}
 
 @ApiTags("stores")
 @ApiBearerAuth()
@@ -26,5 +39,11 @@ export class StoreController {
     @Query("region") region?: Region,
   ) {
     return this.storeService.getPricesByStore(store, region);
+  }
+
+  @Post("compare")
+  @ApiOperation({ summary: "Сравнить стоимость списка покупок во всех магазинах" })
+  compareShoppingList(@Body() dto: CompareShoppingListDto) {
+    return this.storeService.compareShoppingList(dto.items, dto.region);
   }
 }
