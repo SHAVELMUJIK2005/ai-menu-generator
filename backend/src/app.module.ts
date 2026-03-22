@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { ProductModule } from './product/product.module';
 import { PromptModule } from './prompt/prompt.module';
 import { MenuModule } from './menu/menu.module';
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MenuModule } from './menu/menu.module';
     ProductModule,
     PromptModule,
     MenuModule,
+    TelegramModule,
   ],
   controllers: [AppController],
   providers: [AppService],
