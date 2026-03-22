@@ -6,11 +6,11 @@ export default function SplashPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Ждём чуть дольше чтобы auth успел отработать и animate выглядел хорошо
     const timer = setTimeout(() => {
-      // если онбординг уже пройден — сразу на бюджет
       const done = localStorage.getItem('onboarding_done')
       navigate(done ? '/budget' : '/onboarding')
-    }, 1800)
+    }, 2000)
     return () => clearTimeout(timer)
   }, [navigate])
 
@@ -46,6 +46,24 @@ export default function SplashPage() {
       >
         Персональное меню за 30 секунд
       </motion.p>
+
+      {/* индикатор загрузки */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2 }}
+        className="flex gap-1.5 mt-4"
+      >
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            animate={{ scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ background: 'var(--color-primary)' }}
+          />
+        ))}
+      </motion.div>
     </motion.div>
   )
 }
