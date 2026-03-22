@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getProfile, updateProfile } from '../api/user'
+import { getProfile, updateProfile, getStats } from '../api/user'
 import type { UserProfile } from '../../../shared/src/types'
 
 export function useProfile() {
@@ -17,5 +17,13 @@ export function useUpdateProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] })
     },
+  })
+}
+
+export function useStats() {
+  return useQuery({
+    queryKey: ['user-stats'],
+    queryFn: getStats,
+    staleTime: 60 * 1000, // 1 минута
   })
 }
