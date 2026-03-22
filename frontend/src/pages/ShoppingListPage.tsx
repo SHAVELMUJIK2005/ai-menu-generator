@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Check, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, Check, ShoppingBag, BarChart2 } from 'lucide-react'
 import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
+import { useComparePrices } from '../hooks/useStores'
 import type { ShoppingItem } from '../../../shared/src/types'
+import type { StorePriceComparison } from '../api/stores'
 
 // Клиентская категоризация по ключевым словам
 const CATEGORIES: Array<{ label: string; emoji: string; keywords: string[] }> = [
@@ -39,12 +41,77 @@ function getCategoryEmoji(label: string): string {
   return CATEGORIES.find((c) => c.label === label)?.emoji ?? '🛒'
 }
 
+function PriceCompareSheet({
+  results,
+  onClose,
+}: {
+  results: StorePriceComparison[]
+  onClose: () => void
+}) {
+  const max = Math.max(...results.map((r) => r.totalCost))
+  return (
+    <motion.div
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl p-6"
+      style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(30px)' }}
+    >
+      <div className="w-12 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="font-bold text-base" style={{ color: 'var(--color-text)' }}>Сравнение цен</h2>
+        <button onClick={onClose} className="text-gray-400 text-xl">✕</button>
+      </div>
+      <div className="flex flex-col gap-3">
+        {results.map((r) => {
+          const pct = Math.round((r.totalCost / max) * 100)
+          return (
+            <div key={r.store}>
+              <div className="flex justify-between items-center mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{r.storeName}</span>
+                  {r.isCheapest && (
+                    <span
+                      className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                      style={{ background: 'rgba(76,175,80,0.15)', color: 'var(--color-primary)' }}
+                    >
+                      ⭐ Лучшая цена
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-bold" style={{ color: r.isCheapest ? 'var(--color-primary)' : 'var(--color-text)' }}>
+                  ~{r.totalCost} ₽
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="h-full rounded-full"
+                  style={{ background: r.isCheapest ? 'var(--color-primary)' : '#ddd' }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <p className="text-xs text-gray-400 text-center mt-4">
+        Расчёт приблизительный на основе текущих цен
+      </p>
+    </motion.div>
+  )
+}
+
 export default function ShoppingListPage() {
   const navigate = useNavigate()
   const { impact, success } = useHaptic()
   const currentMenu = useMenuStore((s) => s.currentMenu)
   const items = (currentMenu ?? menuMock).shoppingList
   const [checked, setChecked] = useState<Set<string>>(new Set())
+  const [compareResults, setCompareResults] = useState<StorePriceComparison[] | null>(null)
+  const { mutate: comparePrices, isPending: comparing } = useComparePrices()
 
   const toggle = (name: string) => {
     impact('light')
@@ -63,6 +130,14 @@ export default function ShoppingListPage() {
   const unmarkAll = () => {
     impact('medium')
     setChecked(new Set())
+  }
+
+  const handleCompare = () => {
+    impact('light')
+    comparePrices(
+      { items: items.map((i) => ({ name: i.name, totalAmount: i.totalAmount, unit: i.unit })) },
+      { onSuccess: setCompareResults },
+    )
   }
 
   const allDone = checked.size === items.length
@@ -214,6 +289,22 @@ export default function ShoppingListPage() {
           <span className="font-bold" style={{ color: 'var(--color-text)' }}>~{totalAll} ₽</span>
         </div>
         <div className="flex gap-2">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleCompare}
+            disabled={comparing}
+            className="flex items-center justify-center gap-1.5 py-3 px-4 rounded-2xl font-semibold text-sm"
+            style={{
+              background: 'rgba(255,255,255,0.72)',
+              backdropFilter: 'blur(10px)',
+              border: '1.5px solid rgba(0,0,0,0.08)',
+              color: 'var(--color-text)',
+              opacity: comparing ? 0.6 : 1,
+            }}
+          >
+            <BarChart2 size={15} />
+            {comparing ? '...' : 'Цены'}
+          </motion.button>
           {!allDone ? (
             <motion.button
               whileTap={{ scale: 0.97 }}
@@ -221,7 +312,7 @@ export default function ShoppingListPage() {
               className="flex-1 py-3 rounded-2xl font-semibold text-white text-sm"
               style={{ background: 'var(--color-primary)' }}
             >
-              Отметить всё купленным
+              Отметить всё
             </motion.button>
           ) : (
             <motion.button
@@ -235,6 +326,22 @@ export default function ShoppingListPage() {
           )}
         </div>
       </div>
+
+      {/* bottom sheet сравнения цен */}
+      <AnimatePresence>
+        {compareResults && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black"
+              onClick={() => setCompareResults(null)}
+            />
+            <PriceCompareSheet results={compareResults} onClose={() => setCompareResults(null)} />
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

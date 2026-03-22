@@ -8,7 +8,23 @@
 }
 
 body {
-  background-color: var(--color-bg);
+  background-color: #e8e8e3;
   color: var(--color-text);
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Телефонный контейнер — на десктопе центрируется как мобайл */
+#root {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background-color: var(--color-bg);
+  position: relative;
+  overflow-x: hidden;
+  box-shadow: 0 0 40px rgba(0,0,0,0.12);
+}
+
+/* safe-area padding для iOS */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
 }

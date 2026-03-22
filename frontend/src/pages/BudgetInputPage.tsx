@@ -1,9 +1,10 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Star } from 'lucide-react'
 import { useOnboardingStore } from '../store/onboardingStore'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
+import { useSubscription } from '../hooks/useSubscription'
 
 const PROFILE_LABELS: Record<string, string> = {
   STUDENT: 'Студент', SPORT: 'Спорт', FAMILY: 'Семья', SINGLE: 'Один', OFFICE: 'Офис',
@@ -16,16 +17,26 @@ const STORE_LABELS: Record<string, string> = {
 }
 
 export default function BudgetInputPage() {
-  const [budget, setBudget] = useState(3000)
   const navigate = useNavigate()
   const { profileType, goal, storeChain } = useOnboardingStore()
-  const { setBudget: saveToStore } = useMenuStore()
+  const { budget, days, setBudget: saveToStore, setDays } = useMenuStore()
   const { impact, success } = useHaptic()
+  const { data: subscription } = useSubscription()
+  const isPremium = subscription?.isPremium ?? false
 
   const handleGenerate = () => {
     success()
-    saveToStore(budget)
     navigate('/generating')
+  }
+
+  const handleBudget = (val: number) => {
+    saveToStore(val)
+  }
+
+  const handleDays = (val: 3 | 7) => {
+    if (val === 7 && !isPremium) return
+    impact('light')
+    setDays(val)
   }
 
   return (
@@ -42,9 +53,15 @@ export default function BudgetInputPage() {
 
       {/* сумма */}
       <div className="text-center mb-6">
-        <span className="text-5xl font-bold" style={{ color: 'var(--color-primary)' }}>
+        <motion.span
+          key={budget}
+          initial={{ scale: 0.9, opacity: 0.6 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="text-5xl font-bold"
+          style={{ color: 'var(--color-primary)', display: 'inline-block' }}
+        >
           {budget.toLocaleString('ru')}
-        </span>
+        </motion.span>
         <span className="text-2xl ml-2 text-gray-400">₽</span>
       </div>
 
@@ -62,8 +79,8 @@ export default function BudgetInputPage() {
             background: linear-gradient(
               to right,
               #4CAF50 0%,
-              #4CAF50 ${((budget - 500) / (10000 - 500)) * 100}%,
-              #e0e0e0 ${((budget - 500) / (10000 - 500)) * 100}%,
+              #4CAF50 ${Math.round(((budget - 500) / (10000 - 500)) * 100)}%,
+              #e0e0e0 ${Math.round(((budget - 500) / (10000 - 500)) * 100)}%,
               #e0e0e0 100%
             );
           }
@@ -94,7 +111,7 @@ export default function BudgetInputPage() {
           max={10000}
           step={100}
           value={budget}
-          onChange={(e) => setBudget(Number(e.target.value))}
+          onChange={(e) => handleBudget(Number(e.target.value))}
           className="budget-slider"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-2">
@@ -109,7 +126,7 @@ export default function BudgetInputPage() {
           <motion.button
             key={val}
             whileTap={{ scale: 0.93 }}
-            onClick={() => { impact('light'); setBudget(val) }}
+            onClick={() => { impact('light'); handleBudget(val) }}
             className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
             style={{
               background: budget === val ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.72)',
@@ -121,6 +138,31 @@ export default function BudgetInputPage() {
             {val.toLocaleString('ru')}₽
           </motion.button>
         ))}
+      </div>
+
+      {/* выбор количества дней */}
+      <div className="flex gap-2 mb-8">
+        {([3, 7] as const).map((d) => {
+          const locked = d === 7 && !isPremium
+          const active = days === d
+          return (
+            <motion.button
+              key={d}
+              whileTap={{ scale: locked ? 1 : 0.95 }}
+              onClick={() => handleDays(d)}
+              className="flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all"
+              style={{
+                background: active ? 'var(--color-primary)' : 'rgba(255,255,255,0.72)',
+                color: active ? 'white' : locked ? '#bbb' : 'var(--color-text)',
+                backdropFilter: 'blur(10px)',
+                border: active ? 'none' : '1.5px solid rgba(255,255,255,0.5)',
+              }}
+            >
+              {d} дня
+              {locked && <Star size={12} fill="#FF6B35" color="#FF6B35" />}
+            </motion.button>
+          )
+        })}
       </div>
 
       {/* инфо */}
@@ -152,7 +194,7 @@ export default function BudgetInputPage() {
         className="w-full py-4 rounded-2xl font-semibold text-white text-base mt-auto"
         style={{ background: 'var(--color-primary)' }}
       >
-        Составить меню на 3 дня
+        Составить меню на {days} {days === 3 ? 'дня' : 'дней'}
       </motion.button>
     </motion.div>
   )

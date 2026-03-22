@@ -25,7 +25,7 @@ export default function GeneratingPage() {
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
 
   const { mutate: generateMenu } = useGenerateMenu()
-  const { setMenu, budget } = useMenuStore()
+  const { setMenu, budget, days } = useMenuStore()
   const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
 
   const clearIntervals = () => {
@@ -63,7 +63,7 @@ export default function GeneratingPage() {
     generateMenu(
       {
         budget,
-        days: 3,
+        days,
         storeChain: storeChain ?? undefined,
         profileType: profileType ?? 'SINGLE',
         goal: goal ?? 'HEALTHY',

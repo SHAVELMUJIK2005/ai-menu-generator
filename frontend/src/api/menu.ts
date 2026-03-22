@@ -20,3 +20,16 @@ export async function rerollMenu(id: string): Promise<MenuResponse> {
   const { data } = await apiClient.post<MenuResponse>(`/menu/${id}/reroll`)
   return data
 }
+
+export async function rateMenu(id: string, rating: number): Promise<void> {
+  await apiClient.post(`/menu/${id}/rate`, { rating })
+}
+
+export async function substituteMenu(
+  id: string,
+  dayNumber: number,
+  mealType: string,
+): Promise<MenuResponse> {
+  const { data } = await apiClient.post<MenuResponse>(`/menu/${id}/substitute`, { dayNumber, mealType })
+  return data
+}

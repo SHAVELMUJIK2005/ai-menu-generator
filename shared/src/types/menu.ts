@@ -19,7 +19,7 @@ export interface Nutrition {
 }
 
 export interface Ingredient {
-  productId: string
+  productId?: string
   name: string
   amount: number
   unit: string
