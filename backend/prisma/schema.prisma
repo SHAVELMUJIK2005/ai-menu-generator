@@ -98,6 +98,7 @@ model User {
 
   menus          Menu[]
   favorites      Favorite[]
+  ratings        MenuRating[]
   generationLogs GenerationLog[]
   subscription   Subscription?
 }
@@ -138,8 +139,9 @@ model Menu {
   status           MenuStatus  @default(PENDING)
   createdAt        DateTime    @default(now())
 
-  user      User       @relation(fields: [userId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
   favorites Favorite[]
+  ratings   MenuRating[]
 }
 
 model StorePrices {
@@ -153,6 +155,20 @@ model StorePrices {
   parsedAt   DateTime
 
   product Product @relation(fields: [productId], references: [id])
+}
+
+model MenuRating {
+  id        Int      @id @default(autoincrement())
+  menuId    String
+  userId    String
+  stars     Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  menu Menu @relation(fields: [menuId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, menuId])
 }
 
 model Favorite {

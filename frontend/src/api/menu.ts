@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { GenerateMenuRequest, MenuResponse } from '../../../shared/src/types'
+import type { GenerateMenuRequest, MenuResponse, MenuRating, RateMenuRequest, SubstituteMealRequest } from '../../../shared/src/types'
 
 export async function generateMenu(request: GenerateMenuRequest): Promise<MenuResponse> {
   const { data } = await apiClient.post<MenuResponse>('/menu/generate', request)
@@ -18,5 +18,15 @@ export async function getMenu(id: string): Promise<MenuResponse> {
 
 export async function rerollMenu(id: string): Promise<MenuResponse> {
   const { data } = await apiClient.post<MenuResponse>(`/menu/${id}/reroll`)
+  return data
+}
+
+export async function rateMenu(id: string, request: RateMenuRequest): Promise<MenuRating> {
+  const { data } = await apiClient.post<MenuRating>(`/menu/${id}/rate`, request)
+  return data
+}
+
+export async function substituteMeal(id: string, request: SubstituteMealRequest): Promise<MenuResponse> {
+  const { data } = await apiClient.post<MenuResponse>(`/menu/${id}/substitute`, request)
   return data
 }

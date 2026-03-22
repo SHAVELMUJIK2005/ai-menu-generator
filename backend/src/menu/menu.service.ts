@@ -296,6 +296,124 @@ export class MenuService {
     return validated.data;
   }
 
+  /**
+   * Оценить меню (1-5 звёзд)
+   */
+  async rateMenu(userId: string, menuId: string, stars: number, comment?: string) {
+    await this.getById(userId, menuId); // проверяем что меню принадлежит пользователю
+
+    return this.prisma.menuRating.upsert({
+      where: { userId_menuId: { userId, menuId } },
+      create: { userId, menuId, stars, comment },
+      update: { stars, comment },
+    });
+  }
+
+  /**
+   * Замена одного блюда в меню без перегенерации всего
+   * Возвращает обновлённое меню с заменённым блюдом
+   */
+  async substituteMeal(
+    userId: string,
+    menuId: string,
+    dayNumber: number,
+    mealType: "breakfast" | "lunch" | "dinner" | "snack",
+  ): Promise<MenuResponseType> {
+    const menu = await this.getById(userId, menuId);
+    const parsedMenu = menu.parsedMenu as MenuResponseType;
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new HttpException("Пользователь не найден", HttpStatus.NOT_FOUND);
+
+    const day = parsedMenu.days.find((d) => d.dayNumber === dayNumber);
+    if (!day) throw new HttpException("День не найден", HttpStatus.BAD_REQUEST);
+
+    const currentMeal = day.meals.find((m) => m.type === mealType);
+    if (!currentMeal) throw new HttpException("Блюдо не найдено", HttpStatus.BAD_REQUEST);
+
+    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
+    const products = await this.productService.getForPrompt(user.dislikedProducts);
+
+    // Все блюда текущего меню — исключим их из нового
+    const existingDishes = parsedMenu.days.flatMap((d) => d.meals.map((m) => m.name));
+
+    const substitutePrompt = `Замени одно блюдо в меню. Верни ТОЛЬКО JSON одного блюда без markdown.
+
+Текущее блюдо которое нужно заменить:
+- Тип: ${mealType} (${dayNumber}-й день)
+- Название: ${currentMeal.name}
+- Стоимость должна быть ~${currentMeal.cost} руб
+
+Не повторяй эти блюда: ${existingDishes.join(", ")}
+
+Профиль: ${user.profileType ?? "не указан"}, цель: ${user.goal ?? "не указана"}
+Бюджет на блюдо: ~${currentMeal.cost} руб
+
+Доступные продукты (краткий список):
+${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avgPriceRub))}р/${p.unit}`).join(", ")}
+
+Верни JSON строго в формате:
+{
+  "type": "${mealType}",
+  "name": "Название блюда",
+  "ingredients": [{"name": "Продукт", "amount": 100, "unit": "г", "price": 30}],
+  "recipeShort": "Краткий рецепт",
+  "cookingMin": 15,
+  "nutrition": {"calories": 350, "protein": 20, "fat": 8, "carbs": 45},
+  "cost": ${currentMeal.cost}
+}`;
+
+    const response = await this.openai.chat.completions.create({
+      model: aiModel,
+      messages: [
+        { role: "system", content: this.promptBuilder.buildSystemPrompt() },
+        { role: "user", content: substitutePrompt },
+      ],
+      temperature: 0.8,
+      max_tokens: 800,
+      response_format: { type: "json_object" },
+    });
+
+    const raw = response.choices[0]?.message?.content ?? "{}";
+    let newMeal: MenuResponseType["days"][0]["meals"][0];
+    try {
+      newMeal = JSON.parse(raw);
+    } catch {
+      throw new HttpException("Не удалось сгенерировать альтернативное блюдо", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // Обновляем меню: заменяем блюдо
+    const updatedMenu: MenuResponseType = {
+      ...parsedMenu,
+      days: parsedMenu.days.map((d) => {
+        if (d.dayNumber !== dayNumber) return d;
+        return {
+          ...d,
+          meals: d.meals.map((m) => (m.type === mealType ? newMeal : m)),
+          dayTotal: {
+            ...d.dayTotal,
+            cost: d.dayTotal.cost - currentMeal.cost + (newMeal.cost ?? currentMeal.cost),
+          },
+        };
+      }),
+    };
+
+    // Сохраняем обновлённое меню в БД
+    await this.prisma.menu.update({
+      where: { id: menuId },
+      data: {
+        parsedMenu: updatedMenu as object,
+        rawResponse: updatedMenu as object,
+      },
+    });
+
+    // Инвалидируем кэш
+    const cacheKey = `menu:${menuId}`;
+    await this.redis.del(cacheKey);
+
+    return updatedMenu;
+  }
+
   // ─── Private helpers ─────────────────────────────────────────────────────
 
   private async checkRateLimit(userId: string): Promise<void> {
