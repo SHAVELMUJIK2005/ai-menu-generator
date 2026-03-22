@@ -3,11 +3,24 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { ProductModule } from './product/product.module';
+import { PromptModule } from './prompt/prompt.module';
+import { MenuModule } from './menu/menu.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, UserModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    RedisModule,
+    AuthModule,
+    UserModule,
+    ProductModule,
+    PromptModule,
+    MenuModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
