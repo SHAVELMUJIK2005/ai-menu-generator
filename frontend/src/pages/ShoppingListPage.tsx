@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Check } from 'lucide-react'
 import { menuMock } from '../mocks/menuMock'
+import { useMenuStore } from '../store/menuStore'
 
 export default function ShoppingListPage() {
   const navigate = useNavigate()
-  const items = menuMock.shoppingList
+  const currentMenu = useMenuStore((s) => s.currentMenu)
+  const items = (currentMenu ?? menuMock).shoppingList
   const [checked, setChecked] = useState<Set<string>>(new Set())
 
   const toggle = (name: string) => {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useOnboardingStore } from '../store/onboardingStore'
+import { useMenuStore } from '../store/menuStore'
 
 const PROFILE_LABELS: Record<string, string> = {
   STUDENT: 'Студент', SPORT: 'Спорт', FAMILY: 'Семья', SINGLE: 'Один', OFFICE: 'Офис',
@@ -17,10 +18,10 @@ export default function BudgetInputPage() {
   const [budget, setBudget] = useState(3000)
   const navigate = useNavigate()
   const { profileType, goal, storeChain } = useOnboardingStore()
+  const { setBudget: saveToStore } = useMenuStore()
 
   const handleGenerate = () => {
-    // сохраняем бюджет в sessionStorage для GeneratingPage
-    sessionStorage.setItem('budget', String(budget))
+    saveToStore(budget)
     navigate('/generating')
   }
 
@@ -45,7 +46,45 @@ export default function BudgetInputPage() {
       </div>
 
       {/* слайдер */}
-      <div className="mb-4">
+      <div className="mb-6">
+        <style>{`
+          .budget-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            outline: none;
+            cursor: pointer;
+            background: linear-gradient(
+              to right,
+              #4CAF50 0%,
+              #4CAF50 ${((budget - 500) / (10000 - 500)) * 100}%,
+              #e0e0e0 ${((budget - 500) / (10000 - 500)) * 100}%,
+              #e0e0e0 100%
+            );
+          }
+          .budget-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #4CAF50;
+            box-shadow: 0 2px 8px rgba(76,175,80,0.4);
+            cursor: pointer;
+          }
+          .budget-slider::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #4CAF50;
+            box-shadow: 0 2px 8px rgba(76,175,80,0.4);
+            cursor: pointer;
+          }
+        `}</style>
         <input
           type="range"
           min={500}
@@ -53,33 +92,32 @@ export default function BudgetInputPage() {
           step={100}
           value={budget}
           onChange={(e) => setBudget(Number(e.target.value))}
-          className="w-full h-2 rounded-full appearance-none cursor-pointer"
-          style={{ accentColor: 'var(--color-primary)' }}
+          className="budget-slider"
         />
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <div className="flex justify-between text-xs text-gray-400 mt-2">
           <span>500 ₽</span>
           <span>10 000 ₽</span>
         </div>
       </div>
 
-      {/* числовое поле */}
-      <div className="flex items-center gap-2 mb-10">
-        <input
-          type="number"
-          min={500}
-          max={10000}
-          step={100}
-          value={budget}
-          onChange={(e) => setBudget(Math.min(10000, Math.max(500, Number(e.target.value))))}
-          className="w-full p-3 rounded-xl text-center text-lg font-semibold outline-none"
-          style={{
-            background: 'rgba(255,255,255,0.72)',
-            backdropFilter: 'blur(20px)',
-            border: '1.5px solid rgba(255,255,255,0.5)',
-            color: 'var(--color-text)',
-          }}
-        />
-        <span className="text-gray-400 font-medium">₽</span>
+      {/* быстрые кнопки */}
+      <div className="flex gap-2 mb-6">
+        {[1000, 2000, 3000, 5000].map((val) => (
+          <motion.button
+            key={val}
+            whileTap={{ scale: 0.93 }}
+            onClick={() => setBudget(val)}
+            className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
+            style={{
+              background: budget === val ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.72)',
+              border: budget === val ? '1.5px solid #4CAF50' : '1.5px solid rgba(255,255,255,0.5)',
+              color: budget === val ? '#4CAF50' : 'var(--color-text)',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            {val.toLocaleString('ru')}₽
+          </motion.button>
+        ))}
       </div>
 
       {/* инфо */}

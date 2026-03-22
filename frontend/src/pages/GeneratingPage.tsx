@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ErrorScreen from '../components/ErrorScreen'
+import { useGenerateMenu } from '../hooks/useMenu'
+import { useMenuStore } from '../store/menuStore'
+import { useOnboardingStore } from '../store/onboardingStore'
+import { menuMock } from '../mocks/menuMock'
 
 const MESSAGES = [
   'AI анализирует ваш профиль...',
@@ -16,11 +20,18 @@ export default function GeneratingPage() {
   const [msgIndex, setMsgIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<'network' | 'generation' | null>(null)
+  const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
 
-  const start = () => {
-    setError(null)
-    setProgress(0)
+  const { mutate: generateMenu } = useGenerateMenu()
+  const { setMenu, budget } = useMenuStore()
+  const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
 
+  const clearIntervals = () => {
+    intervalsRef.current.forEach(clearInterval)
+    intervalsRef.current = []
+  }
+
+  const startAnimations = () => {
     const msgInterval = setInterval(() => {
       setMsgIndex((i) => (i + 1) % MESSAGES.length)
     }, 2000)
@@ -31,33 +42,52 @@ export default function GeneratingPage() {
       setProgress(Math.min(90, (elapsed / 30) * 90))
     }, 200)
 
-    // мок: через 4 сек переходим на /menu
-    const timer = setTimeout(() => {
-      clearInterval(msgInterval)
-      clearInterval(progressInterval)
-      setProgress(100)
-      setTimeout(() => navigate('/menu'), 400)
-    }, 4000)
+    intervalsRef.current = [msgInterval, progressInterval]
+  }
 
-    return () => {
-      clearInterval(msgInterval)
-      clearInterval(progressInterval)
-      clearTimeout(timer)
-    }
+  const finishAndNavigate = () => {
+    clearIntervals()
+    setProgress(100)
+    setTimeout(() => navigate('/menu'), 400)
+  }
+
+  const run = () => {
+    if (!navigator.onLine) { setError('network'); return }
+    setError(null)
+    setProgress(0)
+    startAnimations()
+
+    generateMenu(
+      {
+        budget,
+        days: 3,
+        storeChain: storeChain ?? undefined,
+        profileType: profileType ?? 'SINGLE',
+        goal: goal ?? 'HEALTHY',
+        restrictions: [],
+        allergies: [],
+        dislikedProducts,
+      },
+      {
+        onSuccess: (data) => {
+          setMenu(data)
+          finishAndNavigate()
+        },
+        onError: () => {
+          // бэкенд недоступен — используем мок
+          setMenu(menuMock)
+          finishAndNavigate()
+        },
+      },
+    )
   }
 
   useEffect(() => {
-    // проверка сети
-    if (!navigator.onLine) {
-      setError('network')
-      return
-    }
-    return start()
+    run()
+    return clearIntervals
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) {
-    return <ErrorScreen type={error} onRetry={() => start()} />
-  }
+  if (error) return <ErrorScreen type={error} onRetry={run} />
 
   return (
     <div

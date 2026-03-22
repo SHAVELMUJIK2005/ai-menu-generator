@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, RefreshCw } from 'lucide-react'
 import { menuMock } from '../mocks/menuMock'
+import { useMenuStore } from '../store/menuStore'
 import type { Meal } from '../../../shared/src/types'
 
 const MEAL_LABELS: Record<string, string> = {
@@ -94,7 +95,8 @@ export default function MenuPage() {
   const [activeDay, setActiveDay] = useState(0)
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
   const navigate = useNavigate()
-  const menu = menuMock
+  const currentMenu = useMenuStore((s) => s.currentMenu)
+  const menu = currentMenu ?? menuMock
 
   const day = menu.days[activeDay]
 

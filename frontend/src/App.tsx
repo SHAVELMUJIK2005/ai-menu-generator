@@ -9,6 +9,7 @@ import MenuPage from './pages/MenuPage'
 import ShoppingListPage from './pages/ShoppingListPage'
 import ProfilePage from './pages/ProfilePage'
 import BottomNav from './components/BottomNav'
+import { useAuth } from './hooks/useAuth'
 
 const queryClient = new QueryClient()
 
@@ -18,6 +19,10 @@ const NAV_ROUTES = ['/menu', '/shopping', '/profile']
 function Layout() {
   const { pathname } = useLocation()
   const showNav = NAV_ROUTES.includes(pathname)
+  const { isReady } = useAuth()
+
+  // Ждём завершения авторизации (токен получен или бэкенд недоступен)
+  if (!isReady) return null
 
   return (
     <>

@@ -25,5 +25,6 @@ export function useStats() {
     queryKey: ['user-stats'],
     queryFn: getStats,
     staleTime: 60 * 1000, // 1 минута
+    retry: false,
   })
 }

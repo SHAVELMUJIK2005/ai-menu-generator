@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useOnboardingStore } from '../../store/onboardingStore'
+import { useUpdateProfile } from '../../hooks/useProfile'
 
 const ALL_PRODUCTS = [
   'Печень', 'Брокколи', 'Творог', 'Рыба', 'Лук', 'Грибы',
@@ -9,11 +10,16 @@ const ALL_PRODUCTS = [
 ]
 
 export default function DislikedProductsPage() {
-  const { dislikedProducts, toggleDislikedProduct } = useOnboardingStore()
+  const { dislikedProducts, toggleDislikedProduct, profileType, goal } = useOnboardingStore()
   const navigate = useNavigate()
+  const { mutate: updateProfile } = useUpdateProfile()
 
   const handleDone = () => {
     localStorage.setItem('onboarding_done', '1')
+    // Синхронизируем профиль с бэкендом (молча — не ждём ответа)
+    if (profileType && goal) {
+      updateProfile({ profileType, goal, dislikedProducts })
+    }
     navigate('/budget')
   }
 
