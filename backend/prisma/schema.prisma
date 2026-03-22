@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ProfileType {
+  STUDENT
+  SPORT
+  FAMILY
+  SINGLE
+  OFFICE
+}
+
+enum Goal {
+  LOSE_WEIGHT
+  GAIN_WEIGHT
+  HEALTHY
+  CHEAP
+}
+
+enum Region {
+  MOSCOW
+  SPB
+  OTHER
+}
+
+enum CookingSkill {
+  BEGINNER
+  BASIC
+  ADVANCED
+}
+
+enum ProductCategory {
+  DAIRY
+  MEAT
+  FISH
+  GRAINS
+  VEGETABLES
+  FRUITS
+  BREAD
+  EGGS_OILS
+  GROCERY
+  FROZEN
+  DRINKS
+  OTHER
+}
+
+enum ProductSource {
+  USDA
+  FATSECRET
+  MANUAL
+}
+
+enum StoreChain {
+  PYATEROCHKA
+  PEREKRESTOK
+  MAGNIT
+  VKUSVILL
+  LENTA
+}
+
+enum MenuStatus {
+  PENDING
+  DONE
+  ERROR
+}
+
+enum SubscriptionPlan {
+  FREE
+  PREMIUM
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id                  String        @id @default(uuid())
+  telegramId          BigInt        @unique
+  username            String?
+  displayName         String?
+  profileType         ProfileType?
+  goal                Goal?
+  dietaryRestrictions String[]
+  allergies           String[]
+  dislikedProducts    String[]
+  region              Region?
+  cookingSkill        CookingSkill?
+  equipment           String[]
+  isPremium           Boolean       @default(false)
+  premiumUntil        DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  menus          Menu[]
+  favorites      Favorite[]
+  generationLogs GenerationLog[]
+  subscription   Subscription?
+}
+
+model Product {
+  id              Int             @id @default(autoincrement())
+  canonicalName   String          @unique
+  category        ProductCategory
+  aliases         String[]
+  unit            String
+  avgPriceRub     Decimal         @db.Decimal(10, 2)
+  caloriesPer100g Decimal?        @db.Decimal(8, 2)
+  proteinPer100g  Decimal?        @db.Decimal(8, 2)
+  fatPer100g      Decimal?        @db.Decimal(8, 2)
+  carbsPer100g    Decimal?        @db.Decimal(8, 2)
+  isSeasonal      Boolean         @default(false)
+  source          ProductSource
+  updatedAt       DateTime        @updatedAt
+
+  storePrices StorePrices[]
+}
+
+model Menu {
+  id               String      @id @default(uuid())
+  userId           String
+  daysCount        Int
+  budgetInput      Int
+  storeChain       StoreChain?
+  promptVersion    String
+  aiModel          String
+  tokensIn         Int
+  tokensOut        Int
+  costUsd          Decimal     @db.Decimal(10, 6)
+  rawResponse      Json
+  parsedMenu       Json
+  shoppingList     Json
+  nutritionSummary Json?
+  status           MenuStatus  @default(PENDING)
+  createdAt        DateTime    @default(now())
+
+  user      User       @relation(fields: [userId], references: [id])
+  favorites Favorite[]
+}
+
+model StorePrices {
+  id         Int        @id @default(autoincrement())
+  productId  Int
+  storeChain StoreChain
+  priceRub   Decimal    @db.Decimal(10, 2)
+  isPromo    Boolean    @default(false)
+  promoPrice Decimal?   @db.Decimal(10, 2)
+  region     Region
+  parsedAt   DateTime
+
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Favorite {
+  userId    String
+  menuId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  menu Menu @relation(fields: [menuId], references: [id])
+
+  @@id([userId, menuId])
+}
+
+model GenerationLog {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  model      String
+  tokensIn   Int
+  tokensOut  Int
+  costUsd    Decimal  @db.Decimal(10, 6)
+  durationMs Int
+  status     String
+  errorMsg   String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Subscription {
+  id              Int              @id @default(autoincrement())
+  userId          String           @unique
+  plan            SubscriptionPlan
+  startedAt       DateTime
+  expiresAt       DateTime
+  paymentProvider String?
+  paymentId       String?
+
+  user User @relation(fields: [userId], references: [id])
+}
