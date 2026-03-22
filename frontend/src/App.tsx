@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './styles/globals.css'
@@ -10,6 +11,7 @@ import ShoppingListPage from './pages/ShoppingListPage'
 import ProfilePage from './pages/ProfilePage'
 import BottomNav from './components/BottomNav'
 import { useAuth } from './hooks/useAuth'
+import { useTelegramReady } from './hooks/useTelegram'
 
 const queryClient = new QueryClient()
 
@@ -20,6 +22,12 @@ function Layout() {
   const { pathname } = useLocation()
   const showNav = NAV_ROUTES.includes(pathname)
   const { isReady } = useAuth()
+  const initTelegram = useTelegramReady()
+
+  // Сообщаем Telegram что приложение загружено и разворачиваем на весь экран
+  useEffect(() => {
+    if (isReady) initTelegram()
+  }, [isReady, initTelegram])
 
   // Ждём завершения авторизации (токен получен или бэкенд недоступен)
   if (!isReady) return null

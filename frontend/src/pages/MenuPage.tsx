@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, RefreshCw } from 'lucide-react'
 import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
+import { useHaptic } from '../hooks/useTelegram'
 import type { Meal } from '../../../shared/src/types'
 
 const MEAL_LABELS: Record<string, string> = {
@@ -13,11 +14,44 @@ const MEAL_LABELS: Record<string, string> = {
   snack: '🍎 Перекус',
 }
 
+// Нормы КБЖУ на день (среднее)
+const DAILY_NORMS = { calories: 2000, protein: 75, fat: 65, carbs: 250 }
+
+interface NutritionBarProps {
+  label: string
+  value: number
+  max: number
+  color: string
+  unit: string
+}
+
+function NutritionBar({ label, value, max, color, unit }: NutritionBarProps) {
+  const pct = Math.min(100, Math.round((value / max) * 100))
+  return (
+    <div className="flex-1">
+      <div className="flex justify-between text-xs mb-1">
+        <span className="text-gray-400">{label}</span>
+        <span style={{ color }} className="font-medium">{value}{unit}</span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: `${color}22` }}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="h-full rounded-full"
+          style={{ background: color }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function MealCard({ meal, onClick }: { meal: Meal; onClick: () => void }) {
+  const { impact } = useHaptic()
   return (
     <motion.div
       whileTap={{ scale: 0.98 }}
-      onClick={onClick}
+      onClick={() => { impact('light'); onClick() }}
       className="p-4 rounded-2xl cursor-pointer"
       style={{
         background: 'rgba(255,255,255,0.72)',
@@ -33,6 +67,23 @@ function MealCard({ meal, onClick }: { meal: Meal; onClick: () => void }) {
       </div>
       <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{meal.name}</div>
       <div className="text-xs text-gray-400 mt-1">{meal.nutrition.calories} ккал · {meal.cookingMin} мин</div>
+
+      {/* мини КБЖУ */}
+      <div className="flex gap-2 mt-2">
+        {[
+          { label: 'Б', value: meal.nutrition.protein, color: '#4CAF50' },
+          { label: 'Ж', value: meal.nutrition.fat, color: '#FF9800' },
+          { label: 'У', value: meal.nutrition.carbs, color: '#2196F3' },
+        ].map(({ label, value, color }) => (
+          <span
+            key={label}
+            className="text-xs px-1.5 py-0.5 rounded-md font-medium"
+            style={{ background: `${color}18`, color }}
+          >
+            {label} {value}г
+          </span>
+        ))}
+      </div>
     </motion.div>
   )
 }
@@ -53,8 +104,8 @@ function MealSheet({ meal, onClose }: { meal: Meal; onClose: () => void }) {
         <button onClick={onClose} className="text-gray-400 text-xl">✕</button>
       </div>
 
-      {/* КБЖУ */}
-      <div className="grid grid-cols-4 gap-2 mb-5">
+      {/* КБЖУ карточки */}
+      <div className="grid grid-cols-4 gap-2 mb-4">
         {[
           { label: 'Калории', value: meal.nutrition.calories, unit: 'ккал', color: '#FF6B35' },
           { label: 'Белки', value: meal.nutrition.protein, unit: 'г', color: '#4CAF50' },
@@ -67,6 +118,19 @@ function MealSheet({ meal, onClose }: { meal: Meal; onClose: () => void }) {
             <div className="text-xs text-gray-400">{label}</div>
           </div>
         ))}
+      </div>
+
+      {/* КБЖУ прогресс-бары (% от дневной нормы) */}
+      <div className="rounded-2xl p-3 mb-4 flex flex-col gap-2" style={{ background: 'rgba(0,0,0,0.03)' }}>
+        <p className="text-xs text-gray-400 mb-1">% от дневной нормы</p>
+        <div className="flex gap-3">
+          <NutritionBar label="Калории" value={meal.nutrition.calories} max={DAILY_NORMS.calories} color="#FF6B35" unit=" ккал" />
+          <NutritionBar label="Белки" value={meal.nutrition.protein} max={DAILY_NORMS.protein} color="#4CAF50" unit="г" />
+        </div>
+        <div className="flex gap-3">
+          <NutritionBar label="Жиры" value={meal.nutrition.fat} max={DAILY_NORMS.fat} color="#FF9800" unit="г" />
+          <NutritionBar label="Углеводы" value={meal.nutrition.carbs} max={DAILY_NORMS.carbs} color="#2196F3" unit="г" />
+        </div>
       </div>
 
       {/* рецепт */}
@@ -95,6 +159,7 @@ export default function MenuPage() {
   const [activeDay, setActiveDay] = useState(0)
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
   const navigate = useNavigate()
+  const { impact } = useHaptic()
   const currentMenu = useMenuStore((s) => s.currentMenu)
   const menu = currentMenu ?? menuMock
 
@@ -116,7 +181,7 @@ export default function MenuPage() {
             <motion.button
               key={i}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveDay(i)}
+              onClick={() => { impact('light'); setActiveDay(i) }}
               className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: activeDay === i ? 'var(--color-primary)' : 'rgba(255,255,255,0.72)',
@@ -147,7 +212,7 @@ export default function MenuPage() {
         </AnimatePresence>
       </div>
 
-      {/* нижняя панель */}
+      {/* нижняя панель с КБЖУ дня */}
       <div
         className="fixed bottom-0 inset-x-0 p-4 flex flex-col gap-3"
         style={{
@@ -156,6 +221,14 @@ export default function MenuPage() {
           borderTop: '1px solid rgba(0,0,0,0.06)',
         }}
       >
+        {/* КБЖУ прогресс-бары дня */}
+        <div className="flex gap-3 px-1">
+          <NutritionBar label="Ккал" value={day.dayTotal.calories} max={DAILY_NORMS.calories} color="#FF6B35" unit="" />
+          <NutritionBar label="Белки" value={day.dayTotal.protein} max={DAILY_NORMS.protein} color="#4CAF50" unit="г" />
+          <NutritionBar label="Жиры" value={day.dayTotal.fat} max={DAILY_NORMS.fat} color="#FF9800" unit="г" />
+          <NutritionBar label="Углев" value={day.dayTotal.carbs} max={DAILY_NORMS.carbs} color="#2196F3" unit="г" />
+        </div>
+
         <div className="flex justify-between text-sm px-1">
           <span className="text-gray-400">День {day.dayNumber}</span>
           <span>
@@ -166,7 +239,7 @@ export default function MenuPage() {
         <div className="flex gap-2">
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={() => navigate('/generating')}
+            onClick={() => { impact('medium'); navigate('/generating') }}
             className="flex items-center justify-center gap-2 flex-1 py-3 rounded-2xl font-semibold text-sm"
             style={{
               background: 'rgba(255,255,255,0.72)',
@@ -180,7 +253,7 @@ export default function MenuPage() {
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={() => navigate('/shopping')}
+            onClick={() => { impact('light'); navigate('/shopping') }}
             className="flex items-center justify-center gap-2 flex-1 py-3 rounded-2xl font-semibold text-sm text-white"
             style={{ background: 'var(--color-primary)' }}
           >

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { authenticateDev, authenticateWithTelegram } from '../api/auth'
+import { getTelegramInitData } from './useTelegram'
 
 // Флаг: токен уже получен в этой сессии — не повторяем запрос
 let authInProgress = false
@@ -17,9 +18,7 @@ export function useAuth() {
       try {
         let res
 
-        // В Telegram WebApp — берём initData из window.Telegram
-        const initData = (window as Window & { Telegram?: { WebApp?: { initData?: string } } })
-          .Telegram?.WebApp?.initData
+        const initData = getTelegramInitData()
 
         if (initData) {
           res = await authenticateWithTelegram(initData)

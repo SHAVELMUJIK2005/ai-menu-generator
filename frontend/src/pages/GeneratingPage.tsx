@@ -19,7 +19,7 @@ export default function GeneratingPage() {
   const navigate = useNavigate()
   const [msgIndex, setMsgIndex] = useState(0)
   const [progress, setProgress] = useState(0)
-  const [error, setError] = useState<'network' | 'generation' | null>(null)
+  const [error, setError] = useState<'network' | 'generation' | 'limit' | null>(null)
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
 
   const { mutate: generateMenu } = useGenerateMenu()
@@ -73,7 +73,13 @@ export default function GeneratingPage() {
           setMenu(data)
           finishAndNavigate()
         },
-        onError: () => {
+        onError: (err: unknown) => {
+          const status = (err as { response?: { status?: number } })?.response?.status
+          if (status === 429) {
+            clearIntervals()
+            setError('limit')
+            return
+          }
           // бэкенд недоступен — используем мок
           setMenu(menuMock)
           finishAndNavigate()
