@@ -44,6 +44,7 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       WEBHOOK_DOMAIN: ${WEBHOOK_DOMAIN}
       MINI_APP_URL: https://${WEBHOOK_DOMAIN}/tg
+      FRONTEND_URL: ${FRONTEND_URL}
     depends_on:
       postgres:
         condition: service_healthy

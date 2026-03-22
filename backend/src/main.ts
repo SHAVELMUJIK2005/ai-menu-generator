@@ -10,8 +10,17 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
 
   // CORS для фронтенда и Telegram
+  // FRONTEND_URL — Vercel URL фронтенда (задаётся через env)
+  const frontendUrls = [
+    "http://localhost:5173",
+    "https://t.me",
+    "https://greenmenuai.ru",
+    "https://www.greenmenuai.ru",
+    process.env.FRONTEND_URL,
+  ].filter(Boolean) as string[];
+
   app.enableCors({
-    origin: ["http://localhost:5173", "https://t.me"],
+    origin: frontendUrls,
     credentials: true,
   });
 
