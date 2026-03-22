@@ -18,6 +18,12 @@ export class SubscriptionController {
     return this.subscriptionService.getStatus(user.sub);
   }
 
+  @Post("invoice")
+  @ApiOperation({ summary: "Создать ссылку на оплату Premium через Telegram Stars" })
+  createInvoice(@CurrentUser() user: CurrentUserPayload) {
+    return this.subscriptionService.createInvoiceLink(user.sub).then((url) => ({ invoiceUrl: url }));
+  }
+
   @Post("activate-dev")
   @ApiOperation({ summary: "[DEV] Активировать Premium бесплатно для тестирования" })
   activateDev(@CurrentUser() user: CurrentUserPayload) {

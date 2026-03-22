@@ -106,6 +106,35 @@ export class SubscriptionService {
   }
 
   /**
+   * Создаём ссылку на инвойс Telegram Stars для оплаты Premium
+   * userId передаём в invoice_payload — получим его обратно в successful_payment
+   */
+  async createInvoiceLink(userId: string): Promise<string> {
+    const token = process.env.TG_BOT_TOKEN;
+    if (!token) throw new HttpException("Telegram Bot не настроен", HttpStatus.SERVICE_UNAVAILABLE);
+
+    const res = await fetch(`https://api.telegram.org/bot${token}/createInvoiceLink`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Premium подписка",
+        description: "30 дней Premium: безлимитная генерация меню + приоритетный AI",
+        payload: userId, // вернётся в successful_payment.invoice_payload
+        currency: "XTR", // Telegram Stars
+        prices: [{ label: "Premium 30 дней", amount: PREMIUM_PRICE_STARS }],
+      }),
+    });
+
+    const data = (await res.json()) as { ok: boolean; result?: string; description?: string };
+    if (!data.ok) {
+      this.logger.error("Ошибка создания инвойса:", data.description);
+      throw new HttpException("Ошибка создания инвойса", HttpStatus.BAD_GATEWAY);
+    }
+
+    return data.result!;
+  }
+
+  /**
    * Dev-only: активация Premium без оплаты (для тестирования)
    */
   async activatePremiumDev(userId: string) {

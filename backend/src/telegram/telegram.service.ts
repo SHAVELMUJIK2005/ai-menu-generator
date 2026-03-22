@@ -1,10 +1,13 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { Telegraf, Context } from "telegraf";
+import { SubscriptionService } from "../subscription/subscription.service";
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
   private readonly logger = new Logger(TelegramService.name);
   private bot: Telegraf;
+
+  constructor(private readonly subscriptionService: SubscriptionService) {}
 
   // URL Mini App — при деплое подставляется реальный домен
   private readonly miniAppUrl =
@@ -83,6 +86,30 @@ export class TelegramService implements OnModuleInit {
           ],
         },
       });
+    });
+
+    // Подтверждение платежа (обязательно в течение 10 сек)
+    this.bot.on("pre_checkout_query", async (ctx) => {
+      await ctx.answerPreCheckoutQuery(true);
+    });
+
+    // Успешная оплата — активируем Premium
+    this.bot.on("successful_payment", async (ctx) => {
+      const payment = ctx.message?.successful_payment;
+      if (!payment) return;
+
+      // userId мы передали в invoice_payload при создании инвойса
+      const userId = payment.invoice_payload;
+      const paymentId = payment.telegram_payment_charge_id;
+
+      try {
+        await this.subscriptionService.activatePremium(userId, paymentId, "telegram_stars");
+        await ctx.reply("✅ Premium активирован! 30 дней безлимитной генерации меню.");
+        this.logger.log(`Stars оплата: userId=${userId}, paymentId=${paymentId}`);
+      } catch (e) {
+        this.logger.error("Ошибка активации Premium после оплаты:", e);
+        await ctx.reply("⚠️ Оплата прошла, но возникла ошибка активации. Напишите в поддержку.");
+      }
     });
 
     // Обработка ошибок
