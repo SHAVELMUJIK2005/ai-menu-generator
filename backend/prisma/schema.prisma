@@ -90,6 +90,7 @@ model User {
   region              Region?
   cookingSkill        CookingSkill?
   equipment           String[]
+  preferredStore      StoreChain?
   isPremium           Boolean       @default(false)
   premiumUntil        DateTime?
   createdAt           DateTime      @default(now())

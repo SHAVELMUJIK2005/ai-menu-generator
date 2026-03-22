@@ -12,7 +12,8 @@ import { ProductService } from "../product/product.service";
 import { PromptBuilderService } from "../prompt/prompt-builder.service";
 import { MenuResponseSchema, MenuResponseType } from "./menu.schema";
 import { GenerateMenuDto } from "./dto/generate-menu.dto";
-import { MenuStatus, StoreChain } from "@prisma/client";
+import { MenuStatus, StoreChain, Region } from "@prisma/client";
+import { StoreService } from "../store/store.service";
 
 const PROMPT_VERSION = "v1.0";
 const MAX_FREE_GENERATIONS_PER_DAY = 3;
@@ -29,6 +30,7 @@ export class MenuService {
     private readonly redis: RedisService,
     private readonly productService: ProductService,
     private readonly promptBuilder: PromptBuilderService,
+    private readonly storeService: StoreService,
   ) {
     // OpenRouter совместим с OpenAI SDK
     this.openai = new OpenAI({
@@ -68,7 +70,13 @@ export class MenuService {
     // Получаем продукты из БД (исключаем нежелательные)
     const products = await this.productService.getForPrompt(user.dislikedProducts);
 
-    // Строим промпт
+    // Загружаем цены выбранного магазина (если указан)
+    const storeChain = dto.storeChain as StoreChain | undefined;
+    const storePriceMap = storeChain
+      ? await this.storeService.getPriceMap(storeChain, user.region as Region ?? Region.MOSCOW)
+      : undefined;
+
+    // Строим промпт с реальными ценами магазина
     const prompt = this.promptBuilder.buildFullPrompt(
       {
         profileType: user.profileType,
@@ -82,6 +90,9 @@ export class MenuService {
       products,
       dto.budget,
       dto.days,
+      undefined,
+      storeChain,
+      storePriceMap,
     );
 
     // Генерация с retry до 3 раз

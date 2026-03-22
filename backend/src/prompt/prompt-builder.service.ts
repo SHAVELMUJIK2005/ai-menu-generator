@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { ProfileType, Goal, Region } from "@prisma/client";
+import { ProfileType, Goal, Region, StoreChain } from "@prisma/client";
+import { STORE_LABELS, STORE_MULTIPLIERS } from "../store/store.service";
 
 interface UserContext {
   profileType?: ProfileType | null;
@@ -82,17 +83,32 @@ export class PromptBuilderService {
     ].join("\n");
   }
 
-  buildProductsContext(products: ProductForPrompt[]): string {
-    // Сжатый формат: "название:цена/unit(ккал/б/ж/у)"
+  buildProductsContext(
+    products: ProductForPrompt[],
+    storeChain?: StoreChain | null,
+    storePriceMap?: Map<string, number>,
+  ): string {
+    const storeLabel = storeChain ? STORE_LABELS[storeChain] : null;
+    const multiplier = storeChain ? STORE_MULTIPLIERS[storeChain] : 1;
+
     const lines = products.map((p) => {
-      const price = Number(p.avgPriceRub);
+      // Приоритет: реальная цена из StorePrices → расчётная через multiplier → avg
+      const avgPrice = Number(p.avgPriceRub);
+      const price = storePriceMap?.get(p.canonicalName)
+        ?? Math.round(avgPrice * multiplier);
+
       const cal = p.caloriesPer100g ? Math.round(Number(p.caloriesPer100g)) : "?";
       const prot = p.proteinPer100g ? Math.round(Number(p.proteinPer100g) * 10) / 10 : "?";
       const fat = p.fatPer100g ? Math.round(Number(p.fatPer100g) * 10) / 10 : "?";
       const carb = p.carbsPer100g ? Math.round(Number(p.carbsPer100g) * 10) / 10 : "?";
       return `${p.canonicalName}:${price}р/${p.unit}(${cal}ккал,б${prot},ж${fat},у${carb})`;
     });
-    return `Доступные продукты (цена/100г или шт):\n${lines.join("\n")}`;
+
+    const header = storeLabel
+      ? `Доступные продукты в ${storeLabel} (цены актуальны для выбранного магазина):`
+      : "Доступные продукты (средние цены по России):";
+
+    return `${header}\n${lines.join("\n")}`;
   }
 
   buildOutputFormat(days: number): string {
@@ -147,13 +163,15 @@ export class PromptBuilderService {
     budgetRub: number,
     days: number,
     previousDishes?: string[],
+    storeChain?: StoreChain | null,
+    storePriceMap?: Map<string, number>,
   ): { system: string; user: string } {
     const userLines = [
       this.buildUserContext(user),
       "",
       this.buildBudgetContext(budgetRub, days),
       "",
-      this.buildProductsContext(products),
+      this.buildProductsContext(products, storeChain, storePriceMap),
       "",
       this.buildOutputFormat(days),
       "",

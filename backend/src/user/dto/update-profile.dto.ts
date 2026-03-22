@@ -9,6 +9,7 @@ import {
   Goal,
   Region,
   CookingSkill,
+  StoreChain,
 } from "@prisma/client";
 
 export class UpdateProfileDto {
@@ -47,4 +48,8 @@ export class UpdateProfileDto {
   @IsArray()
   @IsString({ each: true })
   equipment?: string[];
+
+  @IsOptional()
+  @IsEnum(StoreChain)
+  preferredStore?: StoreChain;
 }

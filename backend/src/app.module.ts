@@ -15,6 +15,7 @@ import { TelegramModule } from './telegram/telegram.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AdminModule } from './admin/admin.module';
+import { StoreModule } from './store/store.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AdminModule } from './admin/admin.module';
     FavoritesModule,
     SubscriptionModule,
     AdminModule,
+    StoreModule,
   ],
   controllers: [AppController],
   providers: [
