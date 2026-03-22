@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { RefreshCw, ChevronRight, LogOut } from 'lucide-react'
+import { RefreshCw, ChevronRight, LogOut, Star } from 'lucide-react'
 import { useOnboardingStore } from '../store/onboardingStore'
 import { useProfile, useStats } from '../hooks/useProfile'
 import { useMenuHistory } from '../hooks/useMenu'
+import { useSubscription } from '../hooks/useSubscription'
+import { useHaptic } from '../hooks/useTelegram'
 
 const PROFILE_LABELS: Record<string, string> = {
   STUDENT: '🎓 Студент', SPORT: '💪 Спорт', FAMILY: '👨‍👩‍👧 Семья', SINGLE: '🧑 Один', OFFICE: '💼 Офис',
@@ -38,6 +40,10 @@ export default function ProfilePage() {
   const { data: profile } = useProfile()
   const { data: historyData, isLoading: historyLoading } = useMenuHistory()
   const { data: stats } = useStats()
+  const { data: subscription } = useSubscription()
+  const { impact, success } = useHaptic()
+
+  const isPremium = subscription?.isPremium ?? profile?.isPremium ?? false
 
   // история: берём из API или пустой массив
   const history: Array<{ id: string; date: string; budget: number; days: number; totalCost: number }> =
@@ -49,6 +55,7 @@ export default function ProfilePage() {
   const dailyLimit = stats?.dailyLimit ?? null
 
   const handleLogout = () => {
+    impact('medium')
     localStorage.removeItem('onboarding_done')
     localStorage.removeItem('access_token')
     reset()
@@ -176,22 +183,64 @@ export default function ProfilePage() {
             <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Изменить предпочтения</span>
             <ChevronRight size={16} className="text-gray-300" />
           </motion.div>
-          <div
-            className="flex items-center justify-between p-4 rounded-2xl"
-            style={{
-              background: 'rgba(255,255,255,0.72)',
-              backdropFilter: 'blur(20px)',
-              border: '1.5px solid rgba(255,255,255,0.5)',
-            }}
-          >
-            <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Premium</span>
-            <span
-              className="text-xs px-3 py-1 rounded-full font-semibold"
-              style={{ background: 'rgba(76,175,80,0.1)', color: 'var(--color-primary)' }}
+          {isPremium ? (
+            <div
+              className="flex items-center justify-between p-4 rounded-2xl"
+              style={{
+                background: 'rgba(255,107,53,0.08)',
+                backdropFilter: 'blur(20px)',
+                border: '1.5px solid rgba(255,107,53,0.25)',
+              }}
             >
-              Скоро
-            </span>
-          </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <Star size={14} fill="#FF6B35" color="#FF6B35" />
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>Premium активен</span>
+                </div>
+                {subscription?.premiumUntil && (
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    До {new Date(subscription.premiumUntil).toLocaleDateString('ru', { day: 'numeric', month: 'long' })}
+                  </div>
+                )}
+              </div>
+              <span className="text-xs font-semibold" style={{ color: 'var(--color-accent)' }}>∞ генераций</span>
+            </div>
+          ) : (
+            <motion.div
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { success() }}
+              className="p-4 rounded-2xl cursor-pointer"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,107,53,0.12) 0%, rgba(255,152,0,0.12) 100%)',
+                backdropFilter: 'blur(20px)',
+                border: '1.5px solid rgba(255,107,53,0.3)',
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Star size={14} fill="#FF6B35" color="#FF6B35" />
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>Premium</span>
+                </div>
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  style={{ background: 'rgba(255,107,53,0.15)', color: 'var(--color-accent)' }}
+                >
+                  199 ⭐ Stars/мес
+                </span>
+              </div>
+              <ul className="text-xs text-gray-500 flex flex-col gap-0.5 mb-3">
+                <li>✓ Безлимитные генерации меню</li>
+                <li>✓ Меню на 7 дней</li>
+                <li>✓ Приоритетный AI-доступ</li>
+              </ul>
+              <div
+                className="w-full py-2 rounded-xl text-center text-sm font-semibold"
+                style={{ background: 'var(--color-accent)', color: 'white' }}
+              >
+                Подписаться
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* выйти */}

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { GraduationCap, Dumbbell, Users, User, Briefcase } from 'lucide-react'
 import LiquidCard from '../../components/LiquidCard'
 import { useOnboardingStore } from '../../store/onboardingStore'
+import { useHaptic } from '../../hooks/useTelegram'
 import type { ProfileType } from '../../../../shared/src/types'
 
 const profiles: { type: ProfileType; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -14,8 +15,10 @@ const profiles: { type: ProfileType; label: string; icon: React.ReactNode; desc:
 
 export default function ProfileSelectPage() {
   const { profileType, setProfileType, nextStep } = useOnboardingStore()
+  const { selection } = useHaptic()
 
   const handleSelect = (type: ProfileType) => {
+    selection()
     setProfileType(type)
     setTimeout(nextStep, 300)
   }

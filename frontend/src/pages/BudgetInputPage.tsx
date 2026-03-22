@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useOnboardingStore } from '../store/onboardingStore'
 import { useMenuStore } from '../store/menuStore'
+import { useHaptic } from '../hooks/useTelegram'
 
 const PROFILE_LABELS: Record<string, string> = {
   STUDENT: 'Студент', SPORT: 'Спорт', FAMILY: 'Семья', SINGLE: 'Один', OFFICE: 'Офис',
@@ -19,8 +20,10 @@ export default function BudgetInputPage() {
   const navigate = useNavigate()
   const { profileType, goal, storeChain } = useOnboardingStore()
   const { setBudget: saveToStore } = useMenuStore()
+  const { impact, success } = useHaptic()
 
   const handleGenerate = () => {
+    success()
     saveToStore(budget)
     navigate('/generating')
   }
@@ -106,7 +109,7 @@ export default function BudgetInputPage() {
           <motion.button
             key={val}
             whileTap={{ scale: 0.93 }}
-            onClick={() => setBudget(val)}
+            onClick={() => { impact('light'); setBudget(val) }}
             className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
             style={{
               background: budget === val ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.72)',

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { TrendingDown, TrendingUp, Heart, Wallet } from 'lucide-react'
 import LiquidCard from '../../components/LiquidCard'
 import { useOnboardingStore } from '../../store/onboardingStore'
+import { useHaptic } from '../../hooks/useTelegram'
 import type { Goal } from '../../../../shared/src/types'
 
 const goals: { type: Goal; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -13,8 +14,10 @@ const goals: { type: Goal; label: string; icon: React.ReactNode; desc: string }[
 
 export default function GoalSelectPage() {
   const { goal, setGoal, nextStep } = useOnboardingStore()
+  const { selection } = useHaptic()
 
   const handleSelect = (type: Goal) => {
+    selection()
     setGoal(type)
     setTimeout(nextStep, 300)
   }
