@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
@@ -8,7 +9,7 @@ async function bootstrap() {
   // Глобальный префикс API
   app.setGlobalPrefix("api");
 
-  // CORS для фронтенда
+  // CORS для фронтенда и Telegram
   app.enableCors({
     origin: ["http://localhost:5173", "https://t.me"],
     credentials: true,
@@ -22,6 +23,18 @@ async function bootstrap() {
     }),
   );
 
+  // Swagger UI на /api/docs
+  const config = new DocumentBuilder()
+    .setTitle("AI Menu Generator API")
+    .setDescription("Telegram Mini App для генерации меню питания")
+    .setVersion("1.0")
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api/docs", app, document);
+
   await app.listen(process.env.PORT ?? 3000);
+  console.log(`🚀 Backend: http://localhost:${process.env.PORT ?? 3000}/api`);
+  console.log(`📚 Swagger: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
 }
 bootstrap();
