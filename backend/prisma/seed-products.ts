@@ -1,4 +1,4 @@
-import "dotenv/config";
+if (process.env.NODE_ENV !== "production") { require("dotenv").config(); }
 import { PrismaClient, ProductCategory, ProductSource } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
