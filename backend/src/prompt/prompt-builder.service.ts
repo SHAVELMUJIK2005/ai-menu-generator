@@ -1,9 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { ProfileType, Goal } from "@prisma/client";
+import { ProfileType, Goal, Region } from "@prisma/client";
 
 interface UserContext {
   profileType?: ProfileType | null;
   goal?: Goal | null;
+  region?: Region | null;
   dietaryRestrictions: string[];
   allergies: string[];
   dislikedProducts: string[];
@@ -45,9 +46,24 @@ export class PromptBuilderService {
       CHEAP: "максимальная экономия",
     };
 
+    const regionMap: Record<string, string> = {
+      MOSCOW: "Москва",
+      SPB: "Санкт-Петербург",
+      OTHER: "регион России",
+    };
+
+    // Определяем текущий сезон для сезонных рекомендаций
+    const month = new Date().getMonth() + 1;
+    const season =
+      month >= 3 && month <= 5 ? "весна" :
+      month >= 6 && month <= 8 ? "лето" :
+      month >= 9 && month <= 11 ? "осень" : "зима";
+
     const lines = [
       `Профиль: ${profileMap[user.profileType ?? ""] ?? "не указан"}`,
       `Цель: ${goalMap[user.goal ?? ""] ?? "не указана"}`,
+      `Регион: ${regionMap[user.region ?? ""] ?? "Россия"}`,
+      `Сезон: ${season}`,
     ];
     if (user.dietaryRestrictions.length) lines.push(`Ограничения: ${user.dietaryRestrictions.join(", ")}`);
     if (user.allergies.length) lines.push(`Аллергии: ${user.allergies.join(", ")}`);

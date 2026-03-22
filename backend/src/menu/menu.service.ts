@@ -73,6 +73,7 @@ export class MenuService {
       {
         profileType: user.profileType,
         goal: user.goal,
+        region: user.region,
         dietaryRestrictions: user.dietaryRestrictions,
         allergies: user.allergies,
         dislikedProducts: user.dislikedProducts,
@@ -221,6 +222,7 @@ export class MenuService {
       {
         profileType: user.profileType,
         goal: user.goal,
+        region: user.region,
         dietaryRestrictions: user.dietaryRestrictions,
         allergies: user.allergies,
         dislikedProducts: user.dislikedProducts,
