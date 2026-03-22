@@ -10,6 +10,8 @@ import { ProductModule } from './product/product.module';
 import { PromptModule } from './prompt/prompt.module';
 import { MenuModule } from './menu/menu.module';
 import { TelegramModule } from './telegram/telegram.module';
+import { FavoritesModule } from './favorites/favorites.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { TelegramModule } from './telegram/telegram.module';
     PromptModule,
     MenuModule,
     TelegramModule,
+    FavoritesModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
