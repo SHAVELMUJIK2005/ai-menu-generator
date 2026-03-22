@@ -121,15 +121,34 @@ jobs:
             docker compose -f docker-compose.prod.yml pull backend
             docker compose -f docker-compose.prod.yml up -d --no-deps backend
 
-            # Ждём пока backend поднимется
-            sleep 10
+            # Ждём пока backend поднимется (проверяем health endpoint)
+            echo "Waiting for backend to become healthy..."
+            for i in $(seq 1 30); do
+              if docker compose -f docker-compose.prod.yml exec -T backend \
+                   wget -qO- http://localhost:3000/api/health > /dev/null 2>&1; then
+                echo "Backend is healthy after ${i}s"
+                break
+              fi
+              if [ "$i" = "30" ]; then
+                echo "Backend did not become healthy in 30s, checking logs..."
+                docker compose -f docker-compose.prod.yml logs --tail=50 backend
+                exit 1
+              fi
+              sleep 1
+            done
 
             # Миграции
             docker compose -f docker-compose.prod.yml exec -T backend \
               npx prisma migrate deploy
 
-            # Перезапускаем nginx с актуальным конфигом
-            docker compose -f docker-compose.prod.yml up -d --no-deps nginx
+            # Перезапускаем nginx только если SSL-сертификат уже есть
+            CERT_MOUNTPOINT=$(docker volume inspect menu-app_certbot_conf --format '{{.Mountpoint}}' 2>/dev/null || echo "")
+            if [ -n "$CERT_MOUNTPOINT" ] && [ -f "$CERT_MOUNTPOINT/live/greenmenuai.ru/fullchain.pem" ]; then
+              echo "SSL cert found — restarting nginx with HTTPS config"
+              docker compose -f docker-compose.prod.yml up -d --no-deps nginx
+            else
+              echo "No SSL cert yet — leaving nginx as is (HTTP-only mode)"
+            fi
 
             # Чистим старые образы
             docker image prune -f

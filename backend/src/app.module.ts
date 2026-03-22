@@ -16,6 +16,7 @@ import { FavoritesModule } from './favorites/favorites.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AdminModule } from './admin/admin.module';
 import { StoreModule } from './store/store.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { StoreModule } from './store/store.module';
     SubscriptionModule,
     AdminModule,
     StoreModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [

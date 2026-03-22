@@ -1,8 +1,13 @@
 import { apiClient } from './client'
 import type { GenerateMenuRequest, MenuResponse, MenuRating, RateMenuRequest, SubstituteMealRequest } from '../../../shared/src/types'
 
-export async function generateMenu(request: GenerateMenuRequest): Promise<MenuResponse> {
-  const { data } = await apiClient.post<MenuResponse>('/menu/generate', request)
+export interface GenerateMenuJobResponse {
+  menuId: string
+  status: 'PENDING'
+}
+
+export async function generateMenu(request: GenerateMenuRequest): Promise<GenerateMenuJobResponse> {
+  const { data } = await apiClient.post<GenerateMenuJobResponse>('/menu/generate', request)
   return data
 }
 

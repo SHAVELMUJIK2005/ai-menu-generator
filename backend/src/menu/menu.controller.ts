@@ -25,8 +25,13 @@ export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
   /** POST /api/menu/generate */
+  /**
+   * POST /api/menu/generate
+   * Ставит задачу в очередь, возвращает { menuId, status: "PENDING" }.
+   * Фронт должен poll-ить GET /api/menu/:id до status === "DONE" | "FAILED"
+   */
   @Post("generate")
-  @ApiOperation({ summary: "Сгенерировать меню через AI" })
+  @ApiOperation({ summary: "Запустить асинхронную генерацию меню (BullMQ)" })
   generate(@CurrentUser() user: CurrentUserPayload, @Body() dto: GenerateMenuDto) {
     return this.menuService.generateMenu(user.sub, dto);
   }

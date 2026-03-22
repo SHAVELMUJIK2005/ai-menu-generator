@@ -42,6 +42,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       TG_BOT_TOKEN: ${TG_BOT_TOKEN}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      WEBHOOK_DOMAIN: ${WEBHOOK_DOMAIN}
+      MINI_APP_URL: https://${WEBHOOK_DOMAIN}/tg
     depends_on:
       postgres:
         condition: service_healthy

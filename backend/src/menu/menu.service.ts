@@ -4,6 +4,8 @@ import {
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import OpenAI from "openai";
 import * as crypto from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
@@ -16,6 +18,7 @@ import { MenuStatus, StoreChain, Region } from "@prisma/client";
 import { StoreService } from "../store/store.service";
 import { TelegramService } from "../telegram/telegram.service";
 import { STORE_LABELS } from "../store/store.service";
+import { MENU_QUEUE, MenuJobData } from "../queue/constants";
 
 const PROMPT_VERSION = "v1.0";
 const MAX_FREE_GENERATIONS_PER_DAY = 3;
@@ -34,6 +37,7 @@ export class MenuService {
     private readonly promptBuilder: PromptBuilderService,
     private readonly storeService: StoreService,
     private readonly telegramService: TelegramService,
+    @InjectQueue(MENU_QUEUE) private readonly menuQueue: Queue<MenuJobData>,
   ) {
     // OpenRouter совместим с OpenAI SDK
     this.openai = new OpenAI({
@@ -43,12 +47,10 @@ export class MenuService {
   }
 
   /**
-   * Генерация меню через AI
+   * Поставить задачу генерации меню в очередь BullMQ.
+   * Возвращает menuId и статус PENDING — фронт должен потом poll-ить GET /menu/:id
    */
-  async generateMenu(userId: string, dto: GenerateMenuDto): Promise<MenuResponseType> {
-    const startTime = Date.now();
-
-    // Получаем профиль пользователя
+  async generateMenu(userId: string, dto: GenerateMenuDto): Promise<{ menuId: string; status: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException("Пользователь не найден", HttpStatus.NOT_FOUND);
 
@@ -57,29 +59,71 @@ export class MenuService {
       await this.checkRateLimit(userId);
     }
 
-    // Выбираем модель (premium — Claude, free — GPT-4o-mini)
-    const aiModel = user.isPremium
-      ? "anthropic/claude-sonnet-4-5"
-      : "openai/gpt-4o-mini";
+    // Создаём запись меню в статусе PENDING
+    const menu = await this.prisma.menu.create({
+      data: {
+        userId,
+        daysCount: dto.days,
+        budgetInput: dto.budget,
+        storeChain: dto.storeChain as StoreChain | undefined,
+        promptVersion: PROMPT_VERSION,
+        status: MenuStatus.PENDING,
+      },
+    });
 
-    // Проверяем кэш Redis
+    // Кладём задачу в очередь
+    await this.menuQueue.add(
+      "generate",
+      { menuId: menu.id, userId, daysCount: dto.days, budgetInput: dto.budget, storeChain: dto.storeChain },
+      { attempts: 2, backoff: { type: "fixed", delay: 5000 } },
+    );
+
+    this.logger.log(`Задача создана: menuId=${menu.id}, userId=${userId}`);
+    return { menuId: menu.id, status: MenuStatus.PENDING };
+  }
+
+  /**
+   * Тяжёлая работа — вызывается воркером BullMQ из MenuProcessor.
+   * Генерирует меню через AI и обновляет запись в БД.
+   */
+  async processMenuJob(data: MenuJobData): Promise<void> {
+    const { menuId, userId, daysCount, budgetInput, storeChain: storeChainStr } = data;
+    const startTime = Date.now();
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      await this.prisma.menu.update({ where: { id: menuId }, data: { status: MenuStatus.FAILED } });
+      return;
+    }
+
+    const storeChain = storeChainStr as StoreChain | undefined;
+    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
+
+    // Проверяем кэш
+    const dto = { days: daysCount, budget: budgetInput, storeChain: storeChainStr } as GenerateMenuDto;
     const cacheKey = this.buildCacheKey(user, dto);
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      this.logger.log(`Кэш-хит для userId=${userId}`);
-      return JSON.parse(cached) as MenuResponseType;
+      const parsedMenu = JSON.parse(cached) as MenuResponseType;
+      await this.prisma.menu.update({
+        where: { id: menuId },
+        data: {
+          parsedMenu: parsedMenu as object,
+          shoppingList: parsedMenu.shoppingList as object,
+          rawResponse: parsedMenu as object,
+          status: MenuStatus.DONE,
+          aiModel,
+        },
+      });
+      this.logger.log(`Кэш-хит для menuId=${menuId}`);
+      return;
     }
 
-    // Получаем продукты из БД (исключаем нежелательные)
     const products = await this.productService.getForPrompt(user.dislikedProducts);
-
-    // Загружаем цены выбранного магазина (если указан)
-    const storeChain = dto.storeChain as StoreChain | undefined;
     const storePriceMap = storeChain
       ? await this.storeService.getPriceMap(storeChain, user.region as Region ?? Region.MOSCOW)
       : undefined;
 
-    // Строим промпт с реальными ценами магазина
     const prompt = this.promptBuilder.buildFullPrompt(
       {
         profileType: user.profileType,
@@ -91,14 +135,13 @@ export class MenuService {
         cookingSkill: user.cookingSkill,
       },
       products,
-      dto.budget,
-      dto.days,
+      budgetInput,
+      daysCount,
       undefined,
       storeChain,
       storePriceMap,
     );
 
-    // Генерация с retry до 3 раз
     let parsedMenu: MenuResponseType | null = null;
     let lastError = "";
     let tokensIn = 0;
@@ -106,7 +149,7 @@ export class MenuService {
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        this.logger.log(`Попытка генерации ${attempt}/${MAX_RETRIES}, модель: ${aiModel}`);
+        this.logger.log(`menuId=${menuId}: попытка ${attempt}/${MAX_RETRIES}`);
 
         const response = await this.openai.chat.completions.create({
           model: aiModel,
@@ -123,19 +166,18 @@ export class MenuService {
         tokensOut = response.usage?.completion_tokens ?? 0;
 
         const raw = response.choices[0]?.message?.content ?? "";
-        const parsed = JSON.parse(raw);
-        const validated = MenuResponseSchema.safeParse(parsed);
+        const validated = MenuResponseSchema.safeParse(JSON.parse(raw));
 
         if (validated.success) {
           parsedMenu = validated.data;
           break;
         } else {
           lastError = validated.error.message;
-          this.logger.warn(`Попытка ${attempt}: невалидный JSON — ${lastError}`);
+          this.logger.warn(`menuId=${menuId}: попытка ${attempt} — невалидный JSON`);
         }
       } catch (err) {
         lastError = String(err);
-        this.logger.warn(`Попытка ${attempt}: ошибка — ${lastError}`);
+        this.logger.warn(`menuId=${menuId}: попытка ${attempt} — ошибка: ${lastError}`);
       }
     }
 
@@ -143,19 +185,14 @@ export class MenuService {
     const costUsd = this.estimateCost(aiModel, tokensIn, tokensOut);
 
     if (!parsedMenu) {
-      // Сохраняем лог ошибки
+      await this.prisma.menu.update({ where: { id: menuId }, data: { status: MenuStatus.FAILED } });
       await this.saveGenerationLog(userId, aiModel, tokensIn, tokensOut, costUsd, durationMs, "error", lastError);
-      throw new HttpException("Не удалось сгенерировать меню. Попробуйте ещё раз.", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new Error(`Не удалось сгенерировать меню после ${MAX_RETRIES} попыток: ${lastError}`);
     }
 
-    // Сохраняем меню в БД
-    await this.prisma.menu.create({
+    await this.prisma.menu.update({
+      where: { id: menuId },
       data: {
-        userId,
-        daysCount: dto.days,
-        budgetInput: dto.budget,
-        storeChain: dto.storeChain as StoreChain | undefined,
-        promptVersion: PROMPT_VERSION,
         aiModel,
         tokensIn,
         tokensOut,
@@ -167,19 +204,13 @@ export class MenuService {
       },
     });
 
-    // Сохраняем лог
     await this.saveGenerationLog(userId, aiModel, tokensIn, tokensOut, costUsd, durationMs, "success");
-
-    // Кэшируем результат на 6 часов
     await this.redis.set(cacheKey, JSON.stringify(parsedMenu), CACHE_TTL_SECONDS);
 
-    // Уведомляем пользователя в Telegram (fire-and-forget)
     const storeName = storeChain ? STORE_LABELS[storeChain] : undefined;
     this.telegramService
-      .notifyMenuReady(user.telegramId, dto.days, parsedMenu.totalCost, storeName)
-      .catch(() => {}); // не блокируем ответ
-
-    return parsedMenu;
+      .notifyMenuReady(user.telegramId, daysCount, parsedMenu.totalCost, storeName)
+      .catch(() => {});
   }
 
   /**

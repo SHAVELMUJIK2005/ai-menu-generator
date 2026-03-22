@@ -68,6 +68,7 @@ enum MenuStatus {
   PENDING
   DONE
   ERROR
+  FAILED
 }
 
 enum SubscriptionPlan {
@@ -127,14 +128,14 @@ model Menu {
   daysCount        Int
   budgetInput      Int
   storeChain       StoreChain?
-  promptVersion    String
-  aiModel          String
-  tokensIn         Int
-  tokensOut        Int
-  costUsd          Decimal     @db.Decimal(10, 6)
-  rawResponse      Json
-  parsedMenu       Json
-  shoppingList     Json
+  promptVersion    String      @default("v1.0")
+  aiModel          String?
+  tokensIn         Int?
+  tokensOut        Int?
+  costUsd          Decimal?    @db.Decimal(10, 6)
+  rawResponse      Json?
+  parsedMenu       Json?
+  shoppingList     Json?
   nutritionSummary Json?
   status           MenuStatus  @default(PENDING)
   createdAt        DateTime    @default(now())
