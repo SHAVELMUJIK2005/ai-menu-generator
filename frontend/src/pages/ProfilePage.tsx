@@ -6,6 +6,8 @@ import { useProfile, useStats } from '../hooks/useProfile'
 import { useMenuHistory } from '../hooks/useMenu'
 import { useSubscription, useBuyPremium } from '../hooks/useSubscription'
 import { useHaptic } from '../hooks/useTelegram'
+import { useMenuStore } from '../store/menuStore'
+import type { MenuResponse } from '../../../shared/src/types'
 
 const PROFILE_LABELS: Record<string, string> = {
   STUDENT: '🎓 Студент', SPORT: '💪 Спорт', FAMILY: '👨‍👩‍👧 Семья', SINGLE: '🧑 Один', OFFICE: '💼 Офис',
@@ -43,12 +45,38 @@ export default function ProfilePage() {
   const { data: subscription } = useSubscription()
   const { mutate: buyPremium, isPending: buyingPremium } = useBuyPremium()
   const { impact, success } = useHaptic()
+  const { setMenu } = useMenuStore()
 
   const isPremium = subscription?.isPremium ?? profile?.isPremium ?? false
 
+  // Сырые данные истории из API
+  type RawHistoryItem = {
+    id: string
+    createdAt: string
+    budgetInput: number
+    daysCount: number
+    parsedMenu?: MenuResponse | null
+  }
+  const rawHistoryItems: RawHistoryItem[] = historyData?.items ?? []
+
   // история: берём из API или пустой массив
+  // Поля из бэкенда: createdAt, budgetInput, daysCount, parsedMenu.totalCost
   const history: Array<{ id: string; date: string; budget: number; days: number; totalCost: number }> =
-    historyData?.items ?? []
+    rawHistoryItems.map((item) => ({
+      id: item.id,
+      date: new Date(item.createdAt).toLocaleDateString('ru', { day: 'numeric', month: 'short' }),
+      budget: item.budgetInput,
+      days: item.daysCount,
+      totalCost: item.parsedMenu?.totalCost ?? 0,
+    }))
+
+  // Загрузить меню из истории в стор и перейти на страницу меню
+  const handleHistoryItemClick = (item: RawHistoryItem) => {
+    if (item.parsedMenu) {
+      setMenu(item.parsedMenu, item.id)
+    }
+    navigate('/menu')
+  }
 
   // статистика: API-данные или фоллбэк из локальной истории
   const totalMenus = stats?.totalMenus ?? history.length
@@ -129,11 +157,11 @@ export default function ProfilePage() {
           ) : history.length === 0 ? (
             <div className="text-sm text-gray-400 text-center py-4">История пока пуста</div>
           ) : (
-            history.map((item) => (
+            history.map((item, idx) => (
               <motion.div
                 key={item.id}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/menu')}
+                onClick={() => { impact('light'); handleHistoryItemClick(rawHistoryItems[idx]) }}
                 className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
                 style={{
                   background: 'rgba(255,255,255,0.72)',
