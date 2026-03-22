@@ -6,7 +6,7 @@ import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
 import { useSubstituteMenu, useRateMenu } from '../hooks/useMenu'
-import type { Meal } from '../../../shared/src/types'
+import type { Meal, DayMenu } from '../../../shared/src/types'
 
 const MEAL_LABELS: Record<string, string> = {
   breakfast: '🌅 Завтрак',
@@ -117,7 +117,7 @@ function MealSheet({
       {
         onSuccess: (data) => {
           success()
-          const newMeal = data.days.find((d) => d.dayNumber === dayNumber)?.meals.find((m) => m.type === meal.type)
+          const newMeal = data.days.find((d: DayMenu) => d.dayNumber === dayNumber)?.meals.find((m: Meal) => m.type === meal.type)
           if (newMeal) onSubstituted?.(newMeal)
           onClose()
         },

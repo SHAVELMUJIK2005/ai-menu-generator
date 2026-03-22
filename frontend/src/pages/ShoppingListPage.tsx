@@ -124,7 +124,7 @@ export default function ShoppingListPage() {
 
   const markAll = () => {
     success()
-    setChecked(new Set(items.map((i) => i.name)))
+    setChecked(new Set(items.map((i: ShoppingItem) => i.name)))
   }
 
   const unmarkAll = () => {
