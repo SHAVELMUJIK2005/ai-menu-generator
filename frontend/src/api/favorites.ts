@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { FavoriteMenu } from '../../../shared/src/types'
+import type { FavoriteMenu } from '../types'
 
 export async function getFavorites(): Promise<FavoriteMenu[]> {
   const { data } = await apiClient.get<FavoriteMenu[]>('/favorites')

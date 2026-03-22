@@ -6,7 +6,7 @@ import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
 import { useSubstituteMenu, useRateMenu } from '../hooks/useMenu'
-import type { Meal, DayMenu } from '../../../shared/src/types'
+import type { Meal, DayMenu } from '../types'
 
 const MEAL_LABELS: Record<string, string> = {
   breakfast: '🌅 Завтрак',

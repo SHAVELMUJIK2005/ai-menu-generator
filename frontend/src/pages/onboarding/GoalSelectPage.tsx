@@ -3,7 +3,7 @@ import { TrendingDown, TrendingUp, Heart, Wallet } from 'lucide-react'
 import LiquidCard from '../../components/LiquidCard'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import { useHaptic } from '../../hooks/useTelegram'
-import type { Goal } from '../../../../shared/src/types'
+import type { Goal } from '../../types'
 
 const goals: { type: Goal; label: string; icon: React.ReactNode; desc: string }[] = [
   { type: 'LOSE_WEIGHT', label: 'Сбросить вес', icon: <TrendingDown size={28} />, desc: 'Дефицит калорий, лёгкие блюда' },

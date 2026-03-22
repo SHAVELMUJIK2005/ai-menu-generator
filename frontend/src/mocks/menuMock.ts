@@ -1,4 +1,4 @@
-import type { MenuResponse } from '../../../shared/src/types'
+import type { MenuResponse } from '../types'
 
 export const menuMock: MenuResponse = {
   totalCost: 1240,

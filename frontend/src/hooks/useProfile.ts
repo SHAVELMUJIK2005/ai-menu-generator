@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getProfile, updateProfile, getStats } from '../api/user'
-import type { UserProfile } from '../../../shared/src/types'
+import type { UserProfile } from '../types'
 
 export function useProfile() {
   return useQuery({

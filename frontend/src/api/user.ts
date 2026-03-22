@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { UserProfile, UserStats } from '../../../shared/src/types'
+import type { UserProfile, UserStats } from '../types'
 
 export async function getProfile(): Promise<UserProfile> {
   const { data } = await apiClient.get<UserProfile>('/user/profile')

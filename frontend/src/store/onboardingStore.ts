@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ProfileType, Goal } from '../../../shared/src/types'
+import type { ProfileType, Goal } from '../types'
 
 interface OnboardingState {
   // шаг онбординга (0-4)

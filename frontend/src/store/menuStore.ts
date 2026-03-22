@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { MenuResponse } from '../../../shared/src/types'
+import type { MenuResponse } from '../types'
 
 interface MenuState {
   currentMenu: MenuResponse | null

@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { GenerateMenuRequest, MenuResponse } from '../../../shared/src/types'
+import type { GenerateMenuRequest, MenuResponse } from '../types'
 
 export async function generateMenu(request: GenerateMenuRequest): Promise<MenuResponse> {
   const { data } = await apiClient.post<MenuResponse>('/menu/generate', request)

@@ -6,7 +6,7 @@ import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
 import { useComparePrices } from '../hooks/useStores'
-import type { ShoppingItem } from '../../../shared/src/types'
+import type { ShoppingItem } from '../types'
 import type { StorePriceComparison } from '../api/stores'
 
 // Клиентская категоризация по ключевым словам

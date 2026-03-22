@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { SubscriptionStatus } from '../../../shared/src/types'
+import type { SubscriptionStatus } from '../types'
 
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
   const { data } = await apiClient.get<SubscriptionStatus>('/subscription/status')

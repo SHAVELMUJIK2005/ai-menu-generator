@@ -3,7 +3,7 @@ import { GraduationCap, Dumbbell, Users, User, Briefcase } from 'lucide-react'
 import LiquidCard from '../../components/LiquidCard'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import { useHaptic } from '../../hooks/useTelegram'
-import type { ProfileType } from '../../../../shared/src/types'
+import type { ProfileType } from '../../types'
 
 const profiles: { type: ProfileType; label: string; icon: React.ReactNode; desc: string }[] = [
   { type: 'STUDENT', label: 'Студент', icon: <GraduationCap size={28} />, desc: 'Бюджетное и быстрое питание' },

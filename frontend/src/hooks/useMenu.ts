@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { generateMenu, getMenuHistory, rerollMenu, rateMenu, substituteMenu } from '../api/menu'
-import type { GenerateMenuRequest } from '../../../shared/src/types'
+import type { GenerateMenuRequest } from '../types'
 
 export function useGenerateMenu() {
   return useMutation({
