@@ -47,6 +47,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -63,7 +64,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose to VPS
+      - name: Copy docker-compose files to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -75,37 +76,63 @@ jobs:
 
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DOMAIN: ${{ secrets.DOMAIN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GITHUB_REPOSITORY,IMAGE_TAG,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,REDIS_PASSWORD,JWT_SECRET,TG_BOT_TOKEN,OPENROUTER_API_KEY,DOMAIN,GH_TOKEN,GH_ACTOR
           script: |
+            set -e
             cd /opt/menu-app
 
-            # Обновляем переменные окружения
-            cat > .env << 'EOF'
-            GITHUB_REPOSITORY=${{ github.repository }}
-            IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}
-            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            TG_BOT_TOKEN=${{ secrets.TG_BOT_TOKEN }}
-            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-            DOMAIN=${{ secrets.DOMAIN }}
-            EOF
+            # Пишем .env без лишних отступов
+            printf "GITHUB_REPOSITORY=%s\n" "$GITHUB_REPOSITORY" > .env
+            printf "IMAGE_TAG=%s\n" "$IMAGE_TAG" >> .env
+            printf "POSTGRES_DB=%s\n" "$POSTGRES_DB" >> .env
+            printf "POSTGRES_USER=%s\n" "$POSTGRES_USER" >> .env
+            printf "POSTGRES_PASSWORD=%s\n" "$POSTGRES_PASSWORD" >> .env
+            printf "REDIS_PASSWORD=%s\n" "$REDIS_PASSWORD" >> .env
+            printf "JWT_SECRET=%s\n" "$JWT_SECRET" >> .env
+            printf "TG_BOT_TOKEN=%s\n" "$TG_BOT_TOKEN" >> .env
+            printf "OPENROUTER_API_KEY=%s\n" "$OPENROUTER_API_KEY" >> .env
+            printf "DOMAIN=%s\n" "$DOMAIN" >> .env
+            printf "WEBHOOK_DOMAIN=%s\n" "$DOMAIN" >> .env
+            printf "NODE_ENV=production\n" >> .env
 
             # Логинимся в GHCR
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
 
-            # Rolling update: только backend, остальные не трогаем
+            # Удаляем override файл если есть (он был для ручного деплоя)
+            rm -f docker-compose.override.yml docker-compose.nginx-temp.yml
+
+            # Rolling update backend
             docker compose -f docker-compose.prod.yml pull backend
             docker compose -f docker-compose.prod.yml up -d --no-deps backend
 
-            # Миграции БД
+            # Ждём пока backend поднимется
+            sleep 10
+
+            # Миграции
             docker compose -f docker-compose.prod.yml exec -T backend \
               npx prisma migrate deploy
 
+            # Перезапускаем nginx с актуальным конфигом
+            docker compose -f docker-compose.prod.yml up -d --no-deps nginx
+
             # Чистим старые образы
             docker image prune -f
+
+            echo "Deploy completed successfully"
