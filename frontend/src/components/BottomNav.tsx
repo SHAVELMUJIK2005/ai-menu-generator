@@ -1,6 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { UtensilsCrossed, ShoppingCart, User } from 'lucide-react'
+import { useHaptic } from '../hooks/useTelegram'
+import { useStats } from '../hooks/useProfile'
 
 const TABS = [
   { path: '/menu', label: 'Меню', icon: UtensilsCrossed },
@@ -11,6 +13,14 @@ const TABS = [
 export default function BottomNav() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const { impact } = useHaptic()
+  const { data: stats } = useStats()
+
+  // Показываем бейдж на профиле если лимит генераций заканчивается
+  const showProfileBadge =
+    stats?.generationsLeft !== null &&
+    stats?.generationsLeft !== undefined &&
+    stats.generationsLeft <= 1
 
   return (
     <div
@@ -20,28 +30,58 @@ export default function BottomNav() {
         backdropFilter: 'blur(20px)',
         borderTop: '1px solid rgba(0,0,0,0.06)',
         height: 64,
+        zIndex: 30,
       }}
     >
       {TABS.map(({ path, label, icon: Icon }) => {
         const active = pathname === path
+        const hasBadge = path === '/profile' && showProfileBadge
+
         return (
           <motion.button
             key={path}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate(path)}
-            className="flex flex-col items-center gap-1 flex-1 py-1"
+            whileTap={{ scale: 0.88 }}
+            onClick={() => { impact('light'); navigate(path) }}
+            className="flex flex-col items-center gap-0.5 flex-1 py-1 relative"
           >
-            <Icon
-              size={22}
-              style={{ color: active ? 'var(--color-primary)' : '#bbb' }}
-              strokeWidth={active ? 2.5 : 1.8}
-            />
-            <span
+            {/* активный индикатор */}
+            <AnimatePresence>
+              {active && (
+                <motion.div
+                  layoutId="nav-pill"
+                  className="absolute top-0 inset-x-3 h-0.5 rounded-full"
+                  style={{ background: 'var(--color-primary)' }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </AnimatePresence>
+
+            <div className="relative">
+              <Icon
+                size={22}
+                style={{ color: active ? 'var(--color-primary)' : '#bbb' }}
+                strokeWidth={active ? 2.5 : 1.8}
+              />
+              {/* бейдж */}
+              {hasBadge && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                  style={{ background: '#FF6B35' }}
+                />
+              )}
+            </div>
+
+            <motion.span
+              animate={{ color: active ? '#4CAF50' : '#bbb' }}
               className="text-xs font-medium"
-              style={{ color: active ? 'var(--color-primary)' : '#bbb' }}
             >
               {label}
-            </span>
+            </motion.span>
           </motion.button>
         )
       })}

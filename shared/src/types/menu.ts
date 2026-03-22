@@ -34,6 +34,7 @@ export interface Meal {
   cookingMin: number
   nutrition: Nutrition
   cost: number
+  videoUrl?: string // опциональная ссылка на YouTube рецепт
 }
 
 export interface DayTotal {

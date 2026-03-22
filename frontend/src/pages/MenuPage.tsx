@@ -140,7 +140,7 @@ function MealSheet({ meal, onClose }: { meal: Meal; onClose: () => void }) {
       </div>
 
       {/* ингредиенты */}
-      <div>
+      <div className="mb-4">
         <h3 className="font-semibold mb-2 text-sm" style={{ color: 'var(--color-text)' }}>Ингредиенты</h3>
         <div className="flex flex-col gap-2">
           {meal.ingredients.map((ing) => (
@@ -151,8 +151,32 @@ function MealSheet({ meal, onClose }: { meal: Meal; onClose: () => void }) {
           ))}
         </div>
       </div>
+
+      {/* видео рецепт */}
+      {meal.videoUrl && (
+        <div className="mb-2">
+          <h3 className="font-semibold mb-2 text-sm" style={{ color: 'var(--color-text)' }}>
+            🎬 Видео рецепт
+          </h3>
+          <div className="rounded-2xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${extractYouTubeId(meal.videoUrl)}`}
+              title="Рецепт"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+              style={{ border: 'none' }}
+            />
+          </div>
+        </div>
+      )}
     </motion.div>
   )
+}
+
+function extractYouTubeId(url: string): string {
+  const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/)
+  return match?.[1] ?? ''
 }
 
 export default function MenuPage() {

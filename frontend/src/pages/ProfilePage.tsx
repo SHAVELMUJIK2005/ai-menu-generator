@@ -4,7 +4,7 @@ import { RefreshCw, ChevronRight, LogOut, Star } from 'lucide-react'
 import { useOnboardingStore } from '../store/onboardingStore'
 import { useProfile, useStats } from '../hooks/useProfile'
 import { useMenuHistory } from '../hooks/useMenu'
-import { useSubscription } from '../hooks/useSubscription'
+import { useSubscription, useBuyPremium } from '../hooks/useSubscription'
 import { useHaptic } from '../hooks/useTelegram'
 
 const PROFILE_LABELS: Record<string, string> = {
@@ -41,6 +41,7 @@ export default function ProfilePage() {
   const { data: historyData, isLoading: historyLoading } = useMenuHistory()
   const { data: stats } = useStats()
   const { data: subscription } = useSubscription()
+  const { mutate: buyPremium, isPending: buyingPremium } = useBuyPremium()
   const { impact, success } = useHaptic()
 
   const isPremium = subscription?.isPremium ?? profile?.isPremium ?? false
@@ -233,12 +234,15 @@ export default function ProfilePage() {
                 <li>✓ Меню на 7 дней</li>
                 <li>✓ Приоритетный AI-доступ</li>
               </ul>
-              <div
-                className="w-full py-2 rounded-xl text-center text-sm font-semibold"
-                style={{ background: 'var(--color-accent)', color: 'white' }}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { success(); buyPremium() }}
+                disabled={buyingPremium}
+                className="w-full py-2 rounded-xl text-sm font-semibold"
+                style={{ background: 'var(--color-accent)', color: 'white', opacity: buyingPremium ? 0.7 : 1 }}
               >
-                Подписаться
-              </div>
+                {buyingPremium ? 'Открываем оплату...' : 'Подписаться за 199 ⭐'}
+              </motion.button>
             </motion.div>
           )}
         </div>

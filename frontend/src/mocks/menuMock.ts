@@ -33,6 +33,7 @@ export const menuMock: MenuResponse = {
           cookingMin: 10,
           nutrition: { calories: 380, protein: 12, fat: 8, carbs: 65 },
           recipeShort: 'Залить овсянку горячим молоком, настоять 5 мин. Добавить мёд и щепотку соли.',
+          videoUrl: 'https://www.youtube.com/watch?v=7_AuC3GKpCc',
           ingredients: [
             { productId: '1', name: 'Овсянка', amount: 80, unit: 'г', price: 40 },
             { productId: '2', name: 'Молоко 2.5%', amount: 200, unit: 'мл', price: 17 },
@@ -46,6 +47,7 @@ export const menuMock: MenuResponse = {
           cookingMin: 30,
           nutrition: { calories: 580, protein: 45, fat: 18, carbs: 58 },
           recipeShort: 'Отварить гречку. Куриную грудку обжарить с луком и морковью. Смешать, посолить, поперчить.',
+          videoUrl: 'https://www.youtube.com/watch?v=RHkFOqX8gnI',
           ingredients: [
             { productId: '4', name: 'Куриная грудка', amount: 200, unit: 'г', price: 76 },
             { productId: '5', name: 'Гречка', amount: 100, unit: 'г', price: 15 },

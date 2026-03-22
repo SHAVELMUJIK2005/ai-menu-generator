@@ -20,6 +20,7 @@ export default function GeneratingPage() {
   const navigate = useNavigate()
   const [msgIndex, setMsgIndex] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [done, setDone] = useState(false)
   const [error, setError] = useState<'network' | 'generation' | 'limit' | null>(null)
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
 
@@ -49,7 +50,8 @@ export default function GeneratingPage() {
   const finishAndNavigate = () => {
     clearIntervals()
     setProgress(100)
-    setTimeout(() => navigate('/menu'), 400)
+    setDone(true)
+    setTimeout(() => navigate('/menu'), 900)
   }
 
   const run = () => {
@@ -114,23 +116,39 @@ export default function GeneratingPage() {
           className="absolute w-24 h-24 rounded-full"
           style={{ background: 'rgba(76, 175, 80, 0.25)' }}
         />
-        <div className="absolute">
-          <AvocadoMascot size={72} animate expression="thinking" />
-        </div>
+        <motion.div
+          className="absolute"
+          animate={done ? { scale: [1, 1.2, 1] } : {}}
+          transition={{ duration: 0.4 }}
+        >
+          <AvocadoMascot size={72} animate expression={done ? 'excited' : 'thinking'} />
+        </motion.div>
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.p
-          key={msgIndex}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
-          className="text-base font-medium text-center"
-          style={{ color: 'var(--color-text)' }}
-        >
-          {MESSAGES[msgIndex]}
-        </motion.p>
+        {done ? (
+          <motion.p
+            key="done"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-base font-semibold text-center"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            ✓ Меню готово!
+          </motion.p>
+        ) : (
+          <motion.p
+            key={msgIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="text-base font-medium text-center"
+            style={{ color: 'var(--color-text)' }}
+          >
+            {MESSAGES[msgIndex]}
+          </motion.p>
+        )}
       </AnimatePresence>
 
       <div className="w-full max-w-xs">
