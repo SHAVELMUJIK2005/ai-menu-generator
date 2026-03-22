@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ErrorScreen from '../components/ErrorScreen'
+import AvocadoMascot from '../components/AvocadoMascot'
 import { useGenerateMenu } from '../hooks/useMenu'
 import { useMenuStore } from '../store/menuStore'
 import { useOnboardingStore } from '../store/onboardingStore'
@@ -104,20 +105,17 @@ export default function GeneratingPage() {
         <motion.div
           animate={{ scale: [0.8, 1.2, 0.8] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-32 h-32 rounded-full"
-          style={{ background: 'rgba(76, 175, 80, 0.2)' }}
+          className="w-36 h-36 rounded-full"
+          style={{ background: 'rgba(76, 175, 80, 0.15)' }}
         />
         <motion.div
           animate={{ scale: [0.9, 1.1, 0.9] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
-          className="absolute w-20 h-20 rounded-full"
-          style={{ background: 'rgba(76, 175, 80, 0.4)' }}
+          className="absolute w-24 h-24 rounded-full"
+          style={{ background: 'rgba(76, 175, 80, 0.25)' }}
         />
-        <div
-          className="absolute w-12 h-12 rounded-full flex items-center justify-center text-2xl"
-          style={{ background: 'var(--color-primary)' }}
-        >
-          🤖
+        <div className="absolute">
+          <AvocadoMascot size={72} animate expression="thinking" />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import AvocadoMascot from '../components/AvocadoMascot'
 
 export default function SplashPage() {
   const navigate = useNavigate()
@@ -25,9 +26,8 @@ export default function SplashPage() {
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-        className="text-7xl"
       >
-        🥗
+        <AvocadoMascot size={100} animate expression="happy" />
       </motion.div>
       <motion.h1
         initial={{ opacity: 0, y: 20 }}

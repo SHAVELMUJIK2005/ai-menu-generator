@@ -2,13 +2,16 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import LiquidCard from '../../components/LiquidCard'
 import { useOnboardingStore } from '../../store/onboardingStore'
+import { useHaptic } from '../../hooks/useTelegram'
 
 export default function AgreementPage() {
   const [checked, setChecked] = useState(false)
   const { nextStep, setAgreementAccepted } = useOnboardingStore()
+  const { impact, success } = useHaptic()
 
   const handleNext = () => {
     if (!checked) return
+    success()
     setAgreementAccepted(true)
     nextStep()
   }
@@ -33,9 +36,32 @@ export default function AgreementPage() {
           на основе ваших предпочтений. При наличии заболеваний проконсультируйтесь с врачом перед
           изменением рациона.
         </p>
+        <div className="flex gap-4 mt-3">
+          <a
+            href="/legal/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs underline"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            Условия использования
+          </a>
+          <a
+            href="/legal/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs underline"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            Политика конфиденциальности
+          </a>
+        </div>
       </LiquidCard>
 
-      <label className="flex items-center gap-3 cursor-pointer">
+      <label
+        className="flex items-center gap-3 cursor-pointer"
+        onClick={() => impact('light')}
+      >
         <input
           type="checkbox"
           checked={checked}
