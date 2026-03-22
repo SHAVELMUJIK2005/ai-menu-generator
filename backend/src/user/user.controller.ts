@@ -19,6 +19,14 @@ export class UserController {
   }
 
   /**
+   * GET /api/user/stats — статистика генераций и лимитов
+   */
+  @Get("stats")
+  getStats(@CurrentUser() user: CurrentUserPayload) {
+    return this.userService.getStats(user.sub);
+  }
+
+  /**
    * PUT /api/user/profile — обновление профиля
    */
   @Put("profile")

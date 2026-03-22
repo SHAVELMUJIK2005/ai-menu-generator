@@ -40,6 +40,33 @@ export class UserService {
   }
 
   /**
+   * Статистика пользователя: генерации, лимиты
+   */
+  async getStats(userId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [totalMenus, todayGenerations, user] = await this.prisma.$transaction([
+      this.prisma.menu.count({ where: { userId } }),
+      this.prisma.generationLog.count({
+        where: { userId, createdAt: { gte: today } },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { isPremium: true },
+      }),
+    ]);
+
+    const dailyLimit = user?.isPremium ? null : 3; // null = безлимит для premium
+    return {
+      totalMenus,
+      todayGenerations,
+      dailyLimit,
+      generationsLeft: dailyLimit !== null ? Math.max(0, dailyLimit - todayGenerations) : null,
+    };
+  }
+
+  /**
    * Обновить профиль пользователя
    */
   async updateProfile(userId: string, dto: UpdateProfileDto) {
