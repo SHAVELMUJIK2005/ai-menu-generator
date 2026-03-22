@@ -1,0 +1,17 @@
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+
+export interface CurrentUserPayload {
+  sub: string;
+  telegramId: string;
+}
+
+/**
+ * Декоратор для извлечения данных текущего пользователя из JWT
+ * Использование: @CurrentUser() user: CurrentUserPayload
+ */
+export const CurrentUser = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): CurrentUserPayload => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user as CurrentUserPayload;
+  },
+);
