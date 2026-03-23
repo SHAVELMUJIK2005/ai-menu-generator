@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ErrorScreen from '../components/ErrorScreen'
 import AvocadoMascot from '../components/AvocadoMascot'
-import { useGenerateMenu } from '../hooks/useMenu'
+import { useMenuJob } from '../hooks/useMenu'
 import { useMenuStore } from '../store/menuStore'
 import { useOnboardingStore } from '../store/onboardingStore'
 
@@ -15,8 +15,21 @@ const MESSAGES = [
   'Финальная проверка...',
 ]
 
+const REROLL_MESSAGES = [
+  'Анализируем предыдущее меню...',
+  'Ищем новые рецепты...',
+  'Считаем бюджет...',
+  'Составляем новый рацион...',
+  'Финальная проверка...',
+]
+
 export default function GeneratingPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const state = location.state as { mode?: string; menuId?: string } | null
+  const isRerollMode = state?.mode === 'reroll'
+  const rerollMenuId = state?.menuId ?? ''
+
   const [msgIndex, setMsgIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [done, setDone] = useState(false)
@@ -24,9 +37,11 @@ export default function GeneratingPage() {
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
   const navigatedRef = useRef(false)
 
-  const { mutate: generateMenu, menuData, menuStatus, isGenerating } = useGenerateMenu()
+  const { startGenerate, startReroll, menuData, menuStatus } = useMenuJob()
   const { setMenu, budget } = useMenuStore()
   const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
+
+  const messages = isRerollMode ? REROLL_MESSAGES : MESSAGES
 
   const clearIntervals = () => {
     intervalsRef.current.forEach(clearInterval)
@@ -35,7 +50,7 @@ export default function GeneratingPage() {
 
   const startAnimations = () => {
     const msgInterval = setInterval(() => {
-      setMsgIndex((i) => (i + 1) % MESSAGES.length)
+      setMsgIndex((i) => (i + 1) % messages.length)
     }, 2000)
 
     const startTime = Date.now()
@@ -56,7 +71,6 @@ export default function GeneratingPage() {
     setTimeout(() => navigate('/menu'), 900)
   }
 
-  // Реагируем на изменение статуса меню от поллинга
   useEffect(() => {
     if (menuStatus === 'DONE' && menuData?.parsedMenu) {
       setMenu(menuData.parsedMenu, menuData.id)
@@ -75,30 +89,22 @@ export default function GeneratingPage() {
     navigatedRef.current = false
     startAnimations()
 
-    generateMenu(
-      {
-        budget,
-        days: 3,
-        storeChain: storeChain ?? undefined,
-        profileType: profileType ?? 'SINGLE',
-        goal: goal ?? 'HEALTHY',
-        restrictions: [],
-        allergies: [],
-        dislikedProducts,
-      },
-      {
-        onError: (err: unknown) => {
-          const status = (err as { response?: { status?: number } })?.response?.status
-          if (status === 429) {
-            clearIntervals()
-            setError('limit')
-            return
-          }
-          clearIntervals()
-          setError('generation')
+    if (isRerollMode && rerollMenuId) {
+      startReroll(rerollMenuId)
+    } else {
+      startGenerate(
+        {
+          budget,
+          days: 3,
+          storeChain: storeChain ?? undefined,
+          profileType: profileType ?? 'SINGLE',
+          goal: goal ?? 'HEALTHY',
+          restrictions: [],
+          allergies: [],
+          dislikedProducts,
         },
-      },
-    )
+      )
+    }
   }
 
   useEffect(() => {
@@ -108,8 +114,7 @@ export default function GeneratingPage() {
 
   if (error) return <ErrorScreen type={error} onRetry={run} />
 
-  // Пока идёт генерация или поллинг — показываем анимацию
-  const showLoading = isGenerating || (!done && !error)
+  const showLoading = !done && !error
 
   return (
     <div
@@ -147,7 +152,7 @@ export default function GeneratingPage() {
             className="text-base font-semibold text-center"
             style={{ color: 'var(--color-primary)' }}
           >
-            ✓ Меню готово!
+            ✓ {isRerollMode ? 'Новое меню готово!' : 'Меню готово!'}
           </motion.p>
         ) : showLoading ? (
           <motion.p
@@ -159,7 +164,7 @@ export default function GeneratingPage() {
             className="text-base font-medium text-center"
             style={{ color: 'var(--color-text)' }}
           >
-            {MESSAGES[msgIndex]}
+            {messages[msgIndex]}
           </motion.p>
         ) : null}
       </AnimatePresence>

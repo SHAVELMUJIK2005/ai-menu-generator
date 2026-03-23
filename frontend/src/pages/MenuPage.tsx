@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, RefreshCw } from 'lucide-react'
+import { ShoppingCart, RefreshCw, Star } from 'lucide-react'
 import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
+import { useRateMenu, useSubstituteMeal } from '../hooks/useMenu'
 import type { Meal } from '../../../shared/src/types'
 
 const MEAL_LABELS: Record<string, string> = {
@@ -88,7 +89,27 @@ function MealCard({ meal, onClick }: { meal: Meal; onClick: () => void }) {
   )
 }
 
-function MealSheet({ meal, onClose }: { meal: Meal; onClose: () => void }) {
+function MealSheet({
+  meal,
+  menuId,
+  onClose,
+}: {
+  meal: Meal
+  menuId: string | null
+  onClose: () => void
+}) {
+  const { mutate: substitute, isPending: isSubstituting } = useSubstituteMeal()
+  const { impact } = useHaptic()
+
+  const handleSubstitute = () => {
+    if (!menuId) return
+    impact('medium')
+    substitute(
+      { id: menuId, dayNumber: 1, mealType: meal.type as 'breakfast' | 'lunch' | 'dinner' | 'snack' },
+      { onSuccess: onClose },
+    )
+  }
+
   return (
     <motion.div
       initial={{ y: '100%' }}
@@ -152,6 +173,22 @@ function MealSheet({ meal, onClose }: { meal: Meal; onClose: () => void }) {
         </div>
       </div>
 
+      {/* кнопка замены блюда */}
+      {menuId && (
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSubstitute}
+          disabled={isSubstituting}
+          className="w-full py-3 rounded-2xl font-semibold text-sm mb-4"
+          style={{
+            background: isSubstituting ? 'rgba(0,0,0,0.04)' : 'rgba(76,175,80,0.1)',
+            color: isSubstituting ? '#bbb' : 'var(--color-primary)',
+          }}
+        >
+          {isSubstituting ? 'Заменяем...' : '🔄 Заменить это блюдо'}
+        </motion.button>
+      )}
+
       {/* видео рецепт */}
       {meal.videoUrl && (
         <div className="mb-2">
@@ -179,12 +216,49 @@ function extractYouTubeId(url: string): string {
   return match?.[1] ?? ''
 }
 
+function StarRating({ menuId }: { menuId: string | null }) {
+  const [selected, setSelected] = useState(0)
+  const [submitted, setSubmitted] = useState(false)
+  const { mutate: rateMenu, isPending } = useRateMenu()
+  const { impact } = useHaptic()
+
+  if (!menuId || submitted) return null
+
+  const submit = (stars: number) => {
+    impact('medium')
+    setSelected(stars)
+    rateMenu({ id: menuId, stars }, { onSuccess: () => setSubmitted(true) })
+  }
+
+  return (
+    <div className="flex items-center gap-1 justify-center py-2">
+      <span className="text-xs text-gray-400 mr-1">Оценить меню:</span>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <motion.button
+          key={s}
+          whileTap={{ scale: 0.85 }}
+          onClick={() => submit(s)}
+          disabled={isPending}
+        >
+          <Star
+            size={20}
+            fill={s <= selected ? '#FFB800' : 'none'}
+            stroke={s <= selected ? '#FFB800' : '#ddd'}
+            strokeWidth={1.5}
+          />
+        </motion.button>
+      ))}
+    </div>
+  )
+}
+
 export default function MenuPage() {
   const [activeDay, setActiveDay] = useState(0)
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
   const navigate = useNavigate()
   const { impact } = useHaptic()
   const currentMenu = useMenuStore((s) => s.currentMenu)
+  const currentMenuId = useMenuStore((s) => s.currentMenuId)
   const menu = currentMenu ?? menuMock
 
   const day = menu.days[activeDay]
@@ -260,10 +334,15 @@ export default function MenuPage() {
             <span className="text-gray-400"> · {day.dayTotal.calories} ккал · {day.dayTotal.protein}г белка</span>
           </span>
         </div>
+        <StarRating menuId={currentMenuId} />
+
         <div className="flex gap-2">
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={() => { impact('medium'); navigate('/generating') }}
+            onClick={() => {
+              impact('medium')
+              navigate('/generating', { state: { mode: 'reroll', menuId: currentMenuId } })
+            }}
             className="flex items-center justify-center gap-2 flex-1 py-3 rounded-2xl font-semibold text-sm"
             style={{
               background: 'rgba(255,255,255,0.72)',
@@ -298,7 +377,7 @@ export default function MenuPage() {
               className="fixed inset-0 z-40 bg-black"
               onClick={() => setSelectedMeal(null)}
             />
-            <MealSheet meal={selectedMeal} onClose={() => setSelectedMeal(null)} />
+            <MealSheet meal={selectedMeal} menuId={currentMenuId} onClose={() => setSelectedMeal(null)} />
           </>
         )}
       </AnimatePresence>

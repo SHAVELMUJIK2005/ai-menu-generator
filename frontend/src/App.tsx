@@ -9,6 +9,7 @@ import GeneratingPage from './pages/GeneratingPage'
 import MenuPage from './pages/MenuPage'
 import ShoppingListPage from './pages/ShoppingListPage'
 import ProfilePage from './pages/ProfilePage'
+import FavoritesPage from './pages/FavoritesPage'
 import BottomNav from './components/BottomNav'
 import { useAuth } from './hooks/useAuth'
 import { useTelegramReady } from './hooks/useTelegram'
@@ -16,7 +17,7 @@ import { useTelegramReady } from './hooks/useTelegram'
 const queryClient = new QueryClient()
 
 // таббар показываем только на главных экранах
-const NAV_ROUTES = ['/menu', '/shopping', '/profile']
+const NAV_ROUTES = ['/menu', '/shopping', '/favorites', '/profile']
 
 function Layout() {
   const { pathname } = useLocation()
@@ -42,6 +43,7 @@ function Layout() {
         <Route path="/menu" element={<MenuPage />} />
         <Route path="/shopping" element={<ShoppingListPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/favorites" element={<FavoritesPage />} />
       </Routes>
       {showNav && <BottomNav />}
     </>

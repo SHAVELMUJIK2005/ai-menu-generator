@@ -35,8 +35,8 @@ export async function getMenu(id: string): Promise<MenuRecord> {
   return data
 }
 
-export async function rerollMenu(id: string): Promise<MenuResponse> {
-  const { data } = await apiClient.post<MenuResponse>(`/menu/${id}/reroll`)
+export async function rerollMenu(id: string): Promise<GenerateMenuJobResponse> {
+  const { data } = await apiClient.post<GenerateMenuJobResponse>(`/menu/${id}/reroll`)
   return data
 }
 

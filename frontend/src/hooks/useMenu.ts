@@ -5,25 +5,51 @@ import type { MenuRecord } from '../api/menu'
 import type { GenerateMenuRequest, RateMenuRequest, SubstituteMealRequest } from '../../../shared/src/types'
 
 /**
- * Запускает генерацию меню и возвращает текущее состояние задачи.
- * После получения menuId — автоматически поллит GET /menu/:id через useMenu.
+ * Единый хук для генерации и reroll меню.
+ * Оба сценария возвращают {menuId, status: PENDING} и поллятся одинаково.
  */
-export function useGenerateMenu() {
+export function useMenuJob() {
   const [pendingMenuId, setPendingMenuId] = useState<string | null>(null)
 
-  const mutation = useMutation({
+  const generateMutation = useMutation({
     mutationFn: (request: GenerateMenuRequest) => generateMenu(request),
-    onSuccess: (data) => {
-      setPendingMenuId(data.menuId)
-    },
+    onSuccess: (data) => setPendingMenuId(data.menuId),
+  })
+
+  const rerollMutation = useMutation({
+    mutationFn: (id: string) => rerollMenu(id),
+    onSuccess: (data) => setPendingMenuId(data.menuId),
   })
 
   const menuQuery = useMenu(pendingMenuId ?? '')
+  const menuStatus = menuQuery.data?.status ?? (pendingMenuId ? 'PENDING' : null)
 
+  return {
+    startGenerate: generateMutation.mutate,
+    startReroll: rerollMutation.mutate,
+    isPending: generateMutation.isPending || rerollMutation.isPending,
+    pendingMenuId,
+    menuData: menuQuery.data,
+    menuStatus,
+    isActive:
+      generateMutation.isPending ||
+      rerollMutation.isPending ||
+      menuQuery.data?.status === 'PENDING',
+    error: generateMutation.error || rerollMutation.error,
+  }
+}
+
+/** @deprecated используй useMenuJob */
+export function useGenerateMenu() {
+  const [pendingMenuId, setPendingMenuId] = useState<string | null>(null)
+  const mutation = useMutation({
+    mutationFn: (request: GenerateMenuRequest) => generateMenu(request),
+    onSuccess: (data) => setPendingMenuId(data.menuId),
+  })
+  const menuQuery = useMenu(pendingMenuId ?? '')
   return {
     ...mutation,
     pendingMenuId,
-    // Готовое меню — доступно когда status DONE
     menuData: menuQuery.data,
     menuStatus: menuQuery.data?.status ?? (pendingMenuId ? 'PENDING' : null),
     isGenerating: mutation.isPending || menuQuery.data?.status === 'PENDING',
@@ -39,7 +65,6 @@ export function useMenuHistory(page = 1) {
 
 /**
  * Поллинг меню: когда статус PENDING — опрашиваем каждые 2 секунды.
- * Когда DONE или FAILED — останавливаемся.
  */
 export function useMenu(id: string) {
   return useQuery<MenuRecord>({
@@ -50,17 +75,6 @@ export function useMenu(id: string) {
       const status = (query.state?.data as MenuRecord | undefined)?.status
       if (status === 'PENDING') return 2000
       return false
-    },
-  })
-}
-
-export function useRerollMenu() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => rerollMenu(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['menu', id] })
-      queryClient.invalidateQueries({ queryKey: ['menu-history'] })
     },
   })
 }
@@ -78,8 +92,9 @@ export function useSubstituteMeal() {
     mutationFn: ({ id, ...request }: { id: string } & SubstituteMealRequest) =>
       substituteMeal(id, request),
     onSuccess: (data, { id }) => {
-      // Обновляем кэш с новым меню (замена блюда)
-      queryClient.setQueryData(['menu', id], data)
+      queryClient.setQueryData(['menu', id], (old: MenuRecord | undefined) =>
+        old ? { ...old, parsedMenu: data } : old,
+      )
     },
   })
 }
