@@ -135,13 +135,11 @@ export class ScraperService {
         // и использует её StoreService для сравнения корзины
         const priceRub = Math.round(match.price * 100) / 100;
 
-        // Upsert в StorePrices для каждого региона
+        // Upsert через @@unique([productId, storeChain, region])
         for (const region of regions) {
           await this.prisma.storePrices.upsert({
             where: {
-              // Используем составной ключ если он есть, иначе ищем вручную
-              // (в схеме нет @@unique, используем findFirst + update/create)
-              id: await this.findExistingId(product.id, chain, region),
+              productId_storeChain_region: { productId: product.id, storeChain: chain, region },
             },
             update: {
               priceRub,
@@ -194,15 +192,6 @@ export class ScraperService {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  private async findExistingId(productId: number, chain: StoreChain, region: Region): Promise<number> {
-    const existing = await this.prisma.storePrices.findFirst({
-      where: { productId, storeChain: chain, region },
-      select: { id: true },
-    });
-    // Если не нашли — возвращаем -1 (upsert создаст новую запись через where: {id: -1})
-    return existing?.id ?? -1;
-  }
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

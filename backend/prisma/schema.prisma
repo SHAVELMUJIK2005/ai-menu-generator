@@ -156,6 +156,9 @@ model StorePrices {
   parsedAt   DateTime
 
   product Product @relation(fields: [productId], references: [id])
+
+  @@unique([productId, storeChain, region])
+  @@index([storeChain, region])
 }
 
 model MenuRating {

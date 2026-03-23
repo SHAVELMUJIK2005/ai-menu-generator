@@ -1,4 +1,5 @@
 import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "../prisma/prisma.service";
 import { SubscriptionPlan } from "@prisma/client";
 
@@ -103,6 +104,23 @@ export class SubscriptionService {
       data: { isPremium: false },
     });
     this.logger.log(`Premium истёк для userId=${userId}`);
+  }
+
+  /**
+   * Крон: каждый час деактивируем все истёкшие подписки
+   */
+  @Cron("0 * * * *")
+  async deactivateAllExpired() {
+    const result = await this.prisma.user.updateMany({
+      where: {
+        isPremium: true,
+        premiumUntil: { lt: new Date() },
+      },
+      data: { isPremium: false },
+    });
+    if (result.count > 0) {
+      this.logger.log(`Деактивировано ${result.count} истёкших Premium подписок`);
+    }
   }
 
   /**

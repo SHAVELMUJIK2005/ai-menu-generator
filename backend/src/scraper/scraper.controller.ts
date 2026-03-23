@@ -2,10 +2,11 @@ import { Controller, Post, Get, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ScraperService } from "./scraper.service";
 import { JwtAuthGuard } from "../auth/auth.guard";
+import { AdminGuard } from "../common/guards/admin.guard";
 
 @ApiTags("scraper")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 @Controller("scraper")
 export class ScraperController {
   constructor(private readonly scraperService: ScraperService) {}

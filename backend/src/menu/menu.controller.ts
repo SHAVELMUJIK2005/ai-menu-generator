@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, Min, Max, IsEnum } from "class-validator";
+import { IsInt, IsOptional, IsString, Min, Max, IsIn } from "class-validator";
 import { MenuService } from "./menu.service";
 import { JwtAuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -14,7 +14,7 @@ class RateMenuDto {
 
 class SubstituteMealDto {
   @IsInt() dayNumber: number;
-  @IsEnum(["breakfast", "lunch", "dinner", "snack"]) mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  @IsIn(["breakfast", "lunch", "dinner", "snack"]) mealType: "breakfast" | "lunch" | "dinner" | "snack";
 }
 
 @ApiTags("menu")

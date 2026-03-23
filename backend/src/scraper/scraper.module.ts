@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 import { HttpModule } from "@nestjs/axios";
-import { ScheduleModule } from "@nestjs/schedule";
 import { ScraperService } from "./scraper.service";
 import { ScraperController } from "./scraper.controller";
 import { NameMatcherService } from "./name-matcher.service";
@@ -14,7 +13,6 @@ import { PrismaModule } from "../prisma/prisma.module";
 @Module({
   imports: [
     HttpModule,
-    ScheduleModule.forRoot(),
     PrismaModule,
   ],
   providers: [
