@@ -124,6 +124,18 @@ export class MenuService {
       ? await this.storeService.getPriceMap(storeChain, user.region as Region ?? Region.MOSCOW)
       : undefined;
 
+    // Собираем блюда из последних 2 меню чтобы AI не повторял их
+    const recentMenus = await this.prisma.menu.findMany({
+      where: { userId, status: MenuStatus.DONE, id: { not: menuId } },
+      orderBy: { createdAt: "desc" },
+      take: 2,
+      select: { parsedMenu: true },
+    });
+    const previousDishes = recentMenus.flatMap((m) => {
+      const pm = m.parsedMenu as MenuResponseType | null;
+      return pm?.days.flatMap((d) => d.meals.map((meal) => meal.name)) ?? [];
+    });
+
     const prompt = this.promptBuilder.buildFullPrompt(
       {
         profileType: user.profileType,
@@ -137,7 +149,7 @@ export class MenuService {
       products,
       budgetInput,
       daysCount,
-      undefined,
+      previousDishes.length ? previousDishes : undefined,
       storeChain,
       storePriceMap,
     );
@@ -468,7 +480,7 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
   }
 
   private buildCacheKey(user: { id: string; profileType: unknown; goal: unknown; dietaryRestrictions: string[] }, dto: GenerateMenuDto): string {
-    const data = `${user.profileType}:${user.goal}:${dto.budget}:${dto.days}:${user.dietaryRestrictions.join(",")}`;
+    const data = `${user.id}:${user.profileType}:${user.goal}:${dto.budget}:${dto.days}:${user.dietaryRestrictions.join(",")}`;
     return `menu:${crypto.createHash("md5").update(data).digest("hex")}`;
   }
 
