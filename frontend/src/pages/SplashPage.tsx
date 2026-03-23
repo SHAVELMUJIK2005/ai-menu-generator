@@ -2,18 +2,25 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import AvocadoMascot from '../components/AvocadoMascot'
+import { useMenuStore } from '../store/menuStore'
 
 export default function SplashPage() {
   const navigate = useNavigate()
+  const { currentMenuId } = useMenuStore()
 
   useEffect(() => {
-    // Ждём чуть дольше чтобы auth успел отработать и animate выглядел хорошо
     const timer = setTimeout(() => {
       const done = localStorage.getItem('onboarding_done')
-      navigate(done ? '/budget' : '/onboarding')
+      if (!done) {
+        navigate('/onboarding')
+      } else if (currentMenuId) {
+        navigate('/menu')
+      } else {
+        navigate('/budget')
+      }
     }, 2000)
     return () => clearTimeout(timer)
-  }, [navigate])
+  }, [navigate, currentMenuId])
 
   return (
     <motion.div
