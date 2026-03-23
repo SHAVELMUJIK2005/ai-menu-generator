@@ -265,22 +265,21 @@ function MealSheet({
         </div>
       </div>
 
-      {/* видео рецепт */}
+      {/* видео рецепт — кнопка открывает YouTube через Telegram openLink */}
       {meal.videoUrl && (
         <div className="mb-4">
-          <h3 className="font-semibold mb-2 text-sm" style={{ color: 'var(--color-text)' }}>
-            🎬 Видео рецепт
-          </h3>
-          <div className="rounded-2xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
-            <iframe
-              src={`https://www.youtube.com/embed/${extractYouTubeId(meal.videoUrl)}`}
-              title="Рецепт"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-              style={{ border: 'none' }}
-            />
-          </div>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => {
+              const tg = (window as Window & { Telegram?: { WebApp?: { openLink?: (url: string) => void } } }).Telegram?.WebApp
+              if (tg?.openLink) tg.openLink(meal.videoUrl!)
+              else window.open(meal.videoUrl, '_blank')
+            }}
+            className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2"
+            style={{ background: 'rgba(255,0,0,0.08)', color: '#c00' }}
+          >
+            ▶ Смотреть рецепт на YouTube
+          </motion.button>
         </div>
       )}
 
@@ -317,10 +316,6 @@ function MealSheet({
   )
 }
 
-function extractYouTubeId(url: string): string {
-  const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/)
-  return match?.[1] ?? ''
-}
 
 export default function MenuPage() {
   const [activeDay, setActiveDay] = useState(0)

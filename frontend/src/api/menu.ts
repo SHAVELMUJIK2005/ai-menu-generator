@@ -1,8 +1,13 @@
 import { apiClient } from './client'
 import type { GenerateMenuRequest, MenuResponse } from '../types'
 
-export async function generateMenu(request: GenerateMenuRequest): Promise<MenuResponse> {
-  const { data } = await apiClient.post<MenuResponse>('/menu/generate', request)
+// Бэкенд возвращает MenuResponse + id созданного меню
+export interface GenerateMenuApiResponse extends MenuResponse {
+  id: string
+}
+
+export async function generateMenu(request: GenerateMenuRequest): Promise<GenerateMenuApiResponse> {
+  const { data } = await apiClient.post<GenerateMenuApiResponse>('/menu/generate', request)
   return data
 }
 

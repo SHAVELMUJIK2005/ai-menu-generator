@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { ProfileType, Goal } from '../types'
 
 interface OnboardingState {
@@ -22,7 +23,9 @@ interface OnboardingState {
   reset: () => void
 }
 
-export const useOnboardingStore = create<OnboardingState>((set) => ({
+export const useOnboardingStore = create<OnboardingState>()(
+  persist(
+    (set) => ({
   step: 0,
   profileType: null,
   goal: null,
@@ -51,4 +54,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       dislikedProducts: [],
       agreementAccepted: false,
     }),
-}))
+    }),
+    { name: 'onboarding-store' },
+  ),
+)

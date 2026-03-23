@@ -49,7 +49,7 @@ export default function BudgetInputPage() {
       <h1 className="text-2xl font-bold mt-10 mb-1" style={{ color: 'var(--color-text)' }}>
         На какую сумму составить меню?
       </h1>
-      <p className="text-sm text-gray-400 mb-10">На 3 дня: завтрак, обед и ужин</p>
+      <p className="text-sm text-gray-400 mb-10">На {days} {days === 3 ? 'дня' : 'дней'}: завтрак, обед и ужин</p>
 
       {/* сумма */}
       <div className="text-center mb-6">

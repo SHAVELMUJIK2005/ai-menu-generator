@@ -73,7 +73,7 @@ export default function GeneratingPage() {
       },
       {
         onSuccess: (data) => {
-          setMenu(data)
+          setMenu(data, data.id)
           finishAndNavigate()
         },
         onError: (err: unknown) => {
