@@ -17,6 +17,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { AdminModule } from './admin/admin.module';
 import { StoreModule } from './store/store.module';
 import { QueueModule } from './queue/queue.module';
+import { ScraperModule } from './scraper/scraper.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { QueueModule } from './queue/queue.module';
     AdminModule,
     StoreModule,
     QueueModule,
+    ScraperModule,
   ],
   controllers: [AppController],
   providers: [
