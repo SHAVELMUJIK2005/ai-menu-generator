@@ -47,8 +47,38 @@ function NutritionBar({ label, value, max, color, unit }: NutritionBarProps) {
   )
 }
 
-function MealCard({ meal, onClick }: { meal: Meal; onClick: () => void }) {
-  const { impact } = useHaptic()
+function MealCard({
+  meal,
+  menuId,
+  dayNumber,
+  onSubstituted,
+  onClick,
+}: {
+  meal: Meal
+  menuId: string | null
+  dayNumber: number
+  onSubstituted?: (newMeal: Meal) => void
+  onClick: () => void
+}) {
+  const { impact, success } = useHaptic()
+  const { mutate: substitute, isPending: substituting } = useSubstituteMenu()
+
+  const handleSubstitute = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!menuId || substituting) return
+    impact('medium')
+    substitute(
+      { id: menuId, dayNumber, mealType: meal.type },
+      {
+        onSuccess: (data) => {
+          success()
+          const newMeal = data.days.find((d: DayMenu) => d.dayNumber === dayNumber)?.meals.find((m: Meal) => m.type === meal.type)
+          if (newMeal) onSubstituted?.(newMeal)
+        },
+      },
+    )
+  }
+
   return (
     <motion.div
       whileTap={{ scale: 0.98 }}
@@ -62,9 +92,23 @@ function MealCard({ meal, onClick }: { meal: Meal; onClick: () => void }) {
     >
       <div className="flex justify-between items-start mb-1">
         <span className="text-xs text-gray-400">{MEAL_LABELS[meal.type]}</span>
-        <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
-          {meal.cost} ₽
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
+            {meal.cost} ₽
+          </span>
+          {menuId && (
+            <motion.button
+              whileTap={{ scale: 0.85 }}
+              onClick={handleSubstitute}
+              disabled={substituting}
+              className="p-1.5 rounded-xl"
+              style={{ background: 'rgba(76,175,80,0.1)', opacity: substituting ? 0.4 : 1 }}
+              title="Заменить блюдо"
+            >
+              <Shuffle size={14} color="var(--color-primary)" />
+            </motion.button>
+          )}
+        </div>
       </div>
       <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{meal.name}</div>
       <div className="text-xs text-gray-400 mt-1">{meal.nutrition.calories} ккал · {meal.cookingMin} мин</div>
@@ -361,7 +405,24 @@ export default function MenuPage() {
             className="flex flex-col gap-3"
           >
             {day.meals.map((meal) => (
-              <MealCard key={meal.name} meal={meal} onClick={() => setSelectedMeal(meal)} />
+              <MealCard
+                key={meal.name}
+                meal={meal}
+                menuId={currentMenuId}
+                dayNumber={day.dayNumber}
+                onSubstituted={(newMeal) => {
+                  const updatedMenu = {
+                    ...menu,
+                    days: menu.days.map((d: DayMenu) =>
+                      d.dayNumber === day.dayNumber
+                        ? { ...d, meals: d.meals.map((m: Meal) => (m.type === newMeal.type ? newMeal : m)) }
+                        : d,
+                    ),
+                  }
+                  setMenu(updatedMenu)
+                }}
+                onClick={() => setSelectedMeal(meal)}
+              />
             ))}
           </motion.div>
         </AnimatePresence>
