@@ -182,9 +182,20 @@ export default function BudgetInputPage() {
           <span className="text-gray-400">Цель</span>
           <span className="font-medium">{goal ? GOAL_LABELS[goal] : '—'}</span>
         </div>
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between items-center text-sm">
           <span className="text-gray-400">Магазин</span>
-          <span className="font-medium">{storeChain ? STORE_LABELS[storeChain] : 'Без магазина'}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">{storeChain ? STORE_LABELS[storeChain] : 'Без магазина'}</span>
+            <span
+              className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+              style={storeChain
+                ? { background: 'rgba(76,175,80,0.12)', color: '#4CAF50' }
+                : { background: 'rgba(255,152,0,0.12)', color: '#FF9800' }
+              }
+            >
+              {storeChain ? 'точные цены' : '±15%'}
+            </span>
+          </div>
         </div>
       </div>
 

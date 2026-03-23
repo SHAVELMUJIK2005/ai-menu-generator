@@ -305,9 +305,30 @@ export default function MenuPage() {
         <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--color-text)' }}>
           Ваше меню на {daysCount} {daysCount === 3 ? 'дня' : 'дней'}
         </h1>
-        <p className="text-sm text-gray-400 mb-5">
-          Бюджет: {menu.totalCost} ₽ · Остаток: {menu.budgetLeft} ₽
-        </p>
+        <div className="flex items-center gap-2 mb-5 flex-wrap">
+          <span className="text-sm text-gray-400">
+            Бюджет: {menu.totalCost} ₽ · Остаток: {menu.budgetLeft} ₽
+          </span>
+          {menu.confidence && (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full font-medium"
+              style={{
+                background:
+                  menu.confidence === 'high' ? 'rgba(76,175,80,0.12)' :
+                  menu.confidence === 'medium' ? 'rgba(255,152,0,0.12)' :
+                  'rgba(255,107,53,0.12)',
+                color:
+                  menu.confidence === 'high' ? '#4CAF50' :
+                  menu.confidence === 'medium' ? '#FF9800' :
+                  '#FF6B35',
+              }}
+            >
+              {menu.confidence === 'high' ? '✓ Точные цены' :
+               menu.confidence === 'medium' ? '~ Цены приблизительные' :
+               '⚠ Цены ориентировочные'}
+            </span>
+          )}
+        </div>
 
         {/* табы дней */}
         <div className="flex gap-2 mb-6">
