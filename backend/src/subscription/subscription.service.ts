@@ -4,7 +4,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SubscriptionPlan } from "@prisma/client";
 
 // Цена Premium в Telegram Stars (1 Star ≈ 0.013 USD)
-const PREMIUM_PRICE_STARS = 250; // ~3.25 USD/мес
+const PREMIUM_PRICE_STARS = 199; // ~2.60 USD/мес
 const PREMIUM_DURATION_DAYS = 30;
 
 @Injectable()

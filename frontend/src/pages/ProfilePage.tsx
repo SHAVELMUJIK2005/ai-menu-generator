@@ -41,7 +41,7 @@ export default function ProfilePage() {
 
   const { data: profile } = useProfile()
   const { data: historyData, isLoading: historyLoading } = useMenuHistory()
-  const { data: stats } = useStats()
+  const { data: stats, isLoading: statsLoading } = useStats()
   const { data: subscription } = useSubscription()
   const { mutate: buyPremium, isPending: buyingPremium } = useBuyPremium()
   const { impact, success } = useHaptic()
@@ -115,7 +115,7 @@ export default function ProfilePage() {
 
         {/* статистика */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          {historyLoading ? (
+          {historyLoading || statsLoading ? (
             <>
               <StatSkeleton />
               <StatSkeleton />
@@ -123,10 +123,12 @@ export default function ProfilePage() {
             </>
           ) : (
             [
-              { label: 'Меню создано', value: totalMenus || '—' },
+              { label: 'Меню создано', value: totalMenus != null ? totalMenus : '—' },
               {
                 label: 'Осталось сегодня',
-                value: generationsLeft !== null ? `${generationsLeft}/${dailyLimit}` : '∞',
+                value: stats
+                  ? (generationsLeft !== null ? `${generationsLeft}/${dailyLimit}` : '∞')
+                  : '—',
               },
               { label: 'Статус', value: profile?.isPremium ? '⭐ Premium' : 'Free' },
             ].map(({ label, value }) => (
@@ -180,7 +182,10 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={(e) => { e.stopPropagation(); navigate('/generating') }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/generating', { state: { mode: 'reroll', menuId: item.id } })
+                    }}
                     className="p-2 rounded-xl"
                     style={{ background: 'rgba(76,175,80,0.1)', color: 'var(--color-primary)' }}
                   >
@@ -236,9 +241,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <motion.div
-              whileTap={{ scale: 0.98 }}
-              onClick={() => { success() }}
-              className="p-4 rounded-2xl cursor-pointer"
+              className="p-4 rounded-2xl"
               style={{
                 background: 'linear-gradient(135deg, rgba(255,107,53,0.12) 0%, rgba(255,152,0,0.12) 100%)',
                 backdropFilter: 'blur(20px)',

@@ -8,4 +8,6 @@ export interface MenuJobData {
   storeChain?: string;
   // Для reroll: список блюд предыдущего меню чтобы AI не повторял их
   previousDishes?: string[];
+  // Reroll должен пропускать кэш — иначе вернётся то же меню
+  skipCache?: boolean;
 }

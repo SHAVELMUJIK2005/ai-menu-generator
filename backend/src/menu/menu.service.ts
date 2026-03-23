@@ -99,10 +99,10 @@ export class MenuService {
     const storeChain = storeChainStr as StoreChain | undefined;
     const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
 
-    // Проверяем кэш
+    // Проверяем кэш (reroll всегда пропускает кэш — иначе вернётся то же меню)
     const dto = { days: daysCount, budget: budgetInput, storeChain: storeChainStr } as GenerateMenuDto;
     const cacheKey = this.buildCacheKey(user, dto);
-    const cached = await this.redis.get(cacheKey);
+    const cached = data.skipCache ? null : await this.redis.get(cacheKey);
     if (cached) {
       const parsedMenu = JSON.parse(cached) as MenuResponseType;
       await this.prisma.menu.update({
@@ -324,6 +324,7 @@ export class MenuService {
         budgetInput: original.budgetInput,
         storeChain: original.storeChain ?? undefined,
         previousDishes,
+        skipCache: true, // reroll обязан генерировать новое меню, не возвращать кэш
       },
       { attempts: 2, backoff: { type: "fixed", delay: 5000 } },
     );
@@ -456,11 +457,11 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const count = await this.prisma.generationLog.count({
+    // Считаем меню созданные сегодня (включая кэш-хиты и pending)
+    const count = await this.prisma.menu.count({
       where: {
         userId,
         createdAt: { gte: today },
-        status: "success",
       },
     });
 
@@ -473,7 +474,7 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
   }
 
   private buildCacheKey(user: { id: string; profileType: unknown; goal: unknown; dietaryRestrictions: string[] }, dto: GenerateMenuDto): string {
-    const data = `${user.id}:${user.profileType}:${user.goal}:${dto.budget}:${dto.days}:${user.dietaryRestrictions.join(",")}`;
+    const data = `${user.id}:${user.profileType}:${user.goal}:${dto.budget}:${dto.days}:${dto.storeChain ?? "none"}:${user.dietaryRestrictions.join(",")}`;
     return `menu:${crypto.createHash("md5").update(data).digest("hex")}`;
   }
 

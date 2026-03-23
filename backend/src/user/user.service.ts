@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { RedisService } from "../redis/redis.service";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * Получить профиль пользователя по ID
@@ -48,8 +52,8 @@ export class UserService {
     today.setHours(0, 0, 0, 0);
 
     const [totalMenus, todayGenerations, user] = await this.prisma.$transaction([
-      this.prisma.menu.count({ where: { userId } }),
-      this.prisma.generationLog.count({
+      this.prisma.menu.count({ where: { userId, status: "DONE" } }),
+      this.prisma.menu.count({
         where: { userId, createdAt: { gte: today } },
       }),
       this.prisma.user.findUnique({
@@ -93,6 +97,9 @@ export class UserService {
         createdAt: true,
       },
     });
+
+    // Сбрасываем кэш меню — у пользователя изменились предпочтения
+    await this.redis.scanDel("menu:*");
 
     return { ...user, telegramId: user.telegramId.toString() };
   }
