@@ -84,16 +84,18 @@ jobs:
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_WEBHOOK_SECRET: ${{ secrets.TG_WEBHOOK_SECRET }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DOMAIN: ${{ secrets.DOMAIN }}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          ADMIN_TELEGRAM_IDS: ${{ secrets.ADMIN_TELEGRAM_IDS }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: GITHUB_REPOSITORY,IMAGE_TAG,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,REDIS_PASSWORD,JWT_SECRET,TG_BOT_TOKEN,OPENROUTER_API_KEY,DOMAIN,FRONTEND_URL,GH_TOKEN,GH_ACTOR
+          envs: GITHUB_REPOSITORY,IMAGE_TAG,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,REDIS_PASSWORD,JWT_SECRET,TG_BOT_TOKEN,TG_WEBHOOK_SECRET,OPENROUTER_API_KEY,DOMAIN,FRONTEND_URL,ADMIN_TELEGRAM_IDS,GH_TOKEN,GH_ACTOR
           script: |
             set -e
             cd /opt/menu-app
@@ -109,10 +111,12 @@ jobs:
             printf "REDIS_PASSWORD=%s\n" "$REDIS_PASSWORD" >> .env
             printf "JWT_SECRET=%s\n" "$JWT_SECRET" >> .env
             printf "TG_BOT_TOKEN=%s\n" "$TG_BOT_TOKEN" >> .env
+            printf "TG_WEBHOOK_SECRET=%s\n" "$TG_WEBHOOK_SECRET" >> .env
             printf "OPENROUTER_API_KEY=%s\n" "$OPENROUTER_API_KEY" >> .env
             printf "DOMAIN=%s\n" "$DOMAIN" >> .env
             printf "WEBHOOK_DOMAIN=%s\n" "$DOMAIN" >> .env
             printf "FRONTEND_URL=%s\n" "$FRONTEND_URL" >> .env
+            printf "ADMIN_TELEGRAM_IDS=%s\n" "$ADMIN_TELEGRAM_IDS" >> .env
             printf "NODE_ENV=production\n" >> .env
 
             # Логинимся в GHCR

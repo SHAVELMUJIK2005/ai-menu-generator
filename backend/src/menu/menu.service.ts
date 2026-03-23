@@ -124,17 +124,21 @@ export class MenuService {
       ? await this.storeService.getPriceMap(storeChain, user.region as Region ?? Region.MOSCOW)
       : undefined;
 
-    // Собираем блюда из последних 2 меню чтобы AI не повторял их
-    const recentMenus = await this.prisma.menu.findMany({
-      where: { userId, status: MenuStatus.DONE, id: { not: menuId } },
-      orderBy: { createdAt: "desc" },
-      take: 2,
-      select: { parsedMenu: true },
-    });
-    const previousDishes = recentMenus.flatMap((m) => {
-      const pm = m.parsedMenu as MenuResponseType | null;
-      return pm?.days.flatMap((d) => d.meals.map((meal) => meal.name)) ?? [];
-    });
+    // Если previousDishes переданы из reroll-задачи — используем их,
+    // иначе собираем из истории последних 2 меню
+    let previousDishes = data.previousDishes ?? [];
+    if (!previousDishes.length) {
+      const recentMenus = await this.prisma.menu.findMany({
+        where: { userId, status: MenuStatus.DONE, id: { not: menuId } },
+        orderBy: { createdAt: "desc" },
+        take: 2,
+        select: { parsedMenu: true },
+      });
+      previousDishes = recentMenus.flatMap((m) => {
+        const pm = m.parsedMenu as MenuResponseType | null;
+        return pm?.days.flatMap((d) => d.meals.map((meal) => meal.name)) ?? [];
+      });
+    }
 
     const prompt = this.promptBuilder.buildFullPrompt(
       {
@@ -202,6 +206,19 @@ export class MenuService {
       throw new Error(`Не удалось сгенерировать меню после ${MAX_RETRIES} попыток: ${lastError}`);
     }
 
+    // Считаем суммарное КБЖУ по всем дням для nutritionSummary
+    const nutritionSummary = parsedMenu.days.reduce(
+      (acc, day) => ({
+        totalCalories: acc.totalCalories + day.dayTotal.calories,
+        totalProtein: acc.totalProtein + day.dayTotal.protein,
+        totalFat: acc.totalFat + day.dayTotal.fat,
+        totalCarbs: acc.totalCarbs + day.dayTotal.carbs,
+        avgDailyCalories: 0, // заполним ниже
+      }),
+      { totalCalories: 0, totalProtein: 0, totalFat: 0, totalCarbs: 0, avgDailyCalories: 0 },
+    );
+    nutritionSummary.avgDailyCalories = Math.round(nutritionSummary.totalCalories / parsedMenu.days.length);
+
     await this.prisma.menu.update({
       where: { id: menuId },
       data: {
@@ -212,6 +229,7 @@ export class MenuService {
         rawResponse: parsedMenu as object,
         parsedMenu: parsedMenu as object,
         shoppingList: parsedMenu.shoppingList as object,
+        nutritionSummary: nutritionSummary as object,
         status: MenuStatus.DONE,
       },
     });
@@ -265,78 +283,53 @@ export class MenuService {
   }
 
   /**
-   * Перегенерация меню (reroll) — исключает блюда из предыдущего
+   * Перегенерация меню (reroll) — async через BullMQ как generateMenu.
+   * Возвращает { menuId, status: PENDING }, фронт poll-ит GET /menu/:id.
    */
-  async reroll(userId: string, menuId: string): Promise<MenuResponseType> {
+  async reroll(userId: string, menuId: string): Promise<{ menuId: string; status: string }> {
     const original = await this.getById(userId, menuId);
-    const originalMenu = original.parsedMenu as MenuResponseType;
-
-    // Список блюд из предыдущего меню
-    const previousDishes = originalMenu.days
-      .flatMap((d) => d.meals.map((m) => m.name));
+    if (!original.parsedMenu) {
+      throw new HttpException("Оригинальное меню ещё не готово", HttpStatus.BAD_REQUEST);
+    }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException("Пользователь не найден", HttpStatus.NOT_FOUND);
 
-    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
-    const products = await this.productService.getForPrompt(user.dislikedProducts);
-
-    const prompt = this.promptBuilder.buildFullPrompt(
-      {
-        profileType: user.profileType,
-        goal: user.goal,
-        region: user.region,
-        dietaryRestrictions: user.dietaryRestrictions,
-        allergies: user.allergies,
-        dislikedProducts: user.dislikedProducts,
-        cookingSkill: user.cookingSkill,
-      },
-      products,
-      original.budgetInput,
-      original.daysCount,
-      previousDishes,
-    );
-
-    const response = await this.openai.chat.completions.create({
-      model: aiModel,
-      messages: [
-        { role: "system", content: prompt.system },
-        { role: "user", content: prompt.user },
-      ],
-      temperature: 0.9,
-      max_tokens: 4000,
-      response_format: { type: "json_object" },
-    });
-
-    const raw = response.choices[0]?.message?.content ?? "";
-    const validated = MenuResponseSchema.safeParse(JSON.parse(raw));
-    if (!validated.success) {
-      throw new HttpException("Ошибка генерации нового меню", HttpStatus.INTERNAL_SERVER_ERROR);
+    if (!user.isPremium) {
+      await this.checkRateLimit(userId);
     }
 
-    const tokensIn = response.usage?.prompt_tokens ?? 0;
-    const tokensOut = response.usage?.completion_tokens ?? 0;
-    const costUsd = this.estimateCost(aiModel, tokensIn, tokensOut);
+    // Блюда из исходного меню — AI не должен их повторять
+    const originalMenu = original.parsedMenu as MenuResponseType;
+    const previousDishes = originalMenu.days.flatMap((d) => d.meals.map((m) => m.name));
 
-    await this.prisma.menu.create({
+    // Создаём новую PENDING запись
+    const newMenu = await this.prisma.menu.create({
       data: {
         userId,
         daysCount: original.daysCount,
         budgetInput: original.budgetInput,
         storeChain: original.storeChain,
         promptVersion: PROMPT_VERSION,
-        aiModel,
-        tokensIn,
-        tokensOut,
-        costUsd,
-        rawResponse: validated.data as object,
-        parsedMenu: validated.data as object,
-        shoppingList: validated.data.shoppingList as object,
-        status: MenuStatus.DONE,
+        status: MenuStatus.PENDING,
       },
     });
 
-    return validated.data;
+    await this.menuQueue.add(
+      "generate",
+      {
+        menuId: newMenu.id,
+        userId,
+        daysCount: original.daysCount,
+        budgetInput: original.budgetInput,
+        storeChain: original.storeChain ?? undefined,
+        previousDishes,
+      },
+      { attempts: 2, backoff: { type: "fixed", delay: 5000 } },
+    );
+
+    this.logger.log(`Reroll задача создана: menuId=${newMenu.id}, userId=${userId}`);
+    return { menuId: newMenu.id, status: MenuStatus.PENDING };
   }
 
   /**

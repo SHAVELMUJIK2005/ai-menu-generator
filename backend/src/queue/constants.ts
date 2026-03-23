@@ -6,4 +6,6 @@ export interface MenuJobData {
   daysCount: number;
   budgetInput: number;
   storeChain?: string;
+  // Для reroll: список блюд предыдущего меню чтобы AI не повторял их
+  previousDishes?: string[];
 }
