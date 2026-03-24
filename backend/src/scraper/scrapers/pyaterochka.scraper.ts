@@ -35,9 +35,11 @@ export class PyaterochkaScraper extends BaseScraper {
 
   async search(query: string): Promise<MatchResult[]> {
     try {
-      const resp = await this.http.get<FivekaResponse>("/api/catalog/", {
-        params: { stores: "", name: query, limit: 15 },
-      });
+      const resp = await this.withRetry(() =>
+        this.http.get<FivekaResponse>("/api/catalog/", {
+          params: { stores: "", name: query, limit: 15 },
+        }),
+      );
 
       return (resp.data.results ?? []).map((p) => {
         const basePrice = p.prices?.price ?? 0;

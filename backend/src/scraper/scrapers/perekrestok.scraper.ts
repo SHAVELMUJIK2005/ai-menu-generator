@@ -34,9 +34,11 @@ export class PerekrestokScraper extends BaseScraper {
 
   async search(query: string): Promise<MatchResult[]> {
     try {
-      const resp = await this.http.get<PerekrestokResponse>("/api/catalog/product/feed", {
-        params: { search: query, perPage: 15, sort: "popularity.desc" },
-      });
+      const resp = await this.withRetry(() =>
+        this.http.get<PerekrestokResponse>("/api/catalog/product/feed", {
+          params: { search: query, perPage: 15, sort: "popularity.desc" },
+        }),
+      );
 
       const products =
         resp.data?.content?.products ??

@@ -29,9 +29,11 @@ export class VkusvillScraper extends BaseScraper {
 
   async search(query: string): Promise<MatchResult[]> {
     try {
-      const resp = await this.http.get<VkusvillResponse>("/api/get/goods/", {
-        params: { query, limit: 15, offset: 0 },
-      });
+      const resp = await this.withRetry(() =>
+        this.http.get<VkusvillResponse>("/api/get/goods/", {
+          params: { query, limit: 15, offset: 0 },
+        }),
+      );
 
       const products =
         resp.data?.items ??

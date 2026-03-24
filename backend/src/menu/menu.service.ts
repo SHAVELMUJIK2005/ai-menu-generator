@@ -17,11 +17,13 @@ import { GenerateMenuDto } from "./dto/generate-menu.dto";
 import { MenuStatus, StoreChain, Region } from "@prisma/client";
 import { StoreService } from "../store/store.service";
 import { TelegramService } from "../telegram/telegram.service";
+import { YouTubeService } from "../youtube/youtube.service";
 import { STORE_LABELS } from "../store/store.service";
 import { MENU_QUEUE, MenuJobData } from "../queue/constants";
 
 const PROMPT_VERSION = "v1.0";
 const MAX_FREE_GENERATIONS_PER_DAY = 3;
+const MAX_FREE_SUBSTITUTIONS_PER_DAY = 1;
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 часов
 const MAX_RETRIES = 3;
 
@@ -37,6 +39,7 @@ export class MenuService {
     private readonly promptBuilder: PromptBuilderService,
     private readonly storeService: StoreService,
     private readonly telegramService: TelegramService,
+    private readonly youtubeService: YouTubeService,
     @InjectQueue(MENU_QUEUE) private readonly menuQueue: Queue<MenuJobData>,
   ) {
     // OpenRouter совместим с OpenAI SDK
@@ -219,6 +222,24 @@ export class MenuService {
     );
     nutritionSummary.avgDailyCalories = Math.round(nutritionSummary.totalCalories / parsedMenu.days.length);
 
+    // Для Premium пользователей обогащаем меню видео-рецептами
+    if (user.isPremium && process.env.YOUTUBE_API_KEY) {
+      const dishNames = parsedMenu.days.flatMap((d) => d.meals.map((m) => m.name));
+      const videoMap = await this.youtubeService.enrichMenuWithVideos(dishNames);
+      if (videoMap.size > 0) {
+        parsedMenu = {
+          ...parsedMenu,
+          days: parsedMenu.days.map((day) => ({
+            ...day,
+            meals: day.meals.map((meal) => ({
+              ...meal,
+              videoUrl: videoMap.get(meal.name) ?? meal.videoUrl,
+            })),
+          })),
+        };
+      }
+    }
+
     await this.prisma.menu.update({
       where: { id: menuId },
       data: {
@@ -362,6 +383,27 @@ export class MenuService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException("Пользователь не найден", HttpStatus.NOT_FOUND);
 
+    // Free пользователи: максимум 1 замена блюда в день
+    if (!user.isPremium) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      // Считаем замены через generationLog с моделью gpt-4o-mini и mealType пометкой
+      const substitutionsToday = await this.prisma.generationLog.count({
+        where: {
+          userId,
+          createdAt: { gte: today },
+          status: "success",
+          errorMsg: "substitute",
+        },
+      });
+      if (substitutionsToday >= MAX_FREE_SUBSTITUTIONS_PER_DAY) {
+        throw new HttpException(
+          "Лимит замен блюд исчерпан (1/день). Оформите Premium для безлимитного доступа.",
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
+
     const day = parsedMenu.days.find((d) => d.dayNumber === dayNumber);
     if (!day) throw new HttpException("День не найден", HttpStatus.BAD_REQUEST);
 
@@ -447,6 +489,9 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
     // Инвалидируем кэш
     const cacheKey = `menu:${menuId}`;
     await this.redis.del(cacheKey);
+
+    // Логируем замену для подсчёта лимита у free пользователей
+    await this.saveGenerationLog(userId, aiModel, 0, 0, 0, 0, "success", "substitute");
 
     return updatedMenu;
   }

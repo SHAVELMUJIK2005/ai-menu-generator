@@ -31,9 +31,11 @@ export class LentaScraper extends BaseScraper {
 
   async search(query: string): Promise<MatchResult[]> {
     try {
-      const resp = await this.http.get<LentaResponse>("/api/v1/search", {
-        params: { q: query, size: 15 },
-      });
+      const resp = await this.withRetry(() =>
+        this.http.get<LentaResponse>("/api/v1/search", {
+          params: { q: query, size: 15 },
+        }),
+      );
 
       const products =
         resp.data?.skus ??

@@ -47,6 +47,10 @@ enum ProductCategory {
   GROCERY
   FROZEN
   DRINKS
+  NUTS
+  SPICES
+  CANNED
+  SWEETS
   OTHER
 }
 

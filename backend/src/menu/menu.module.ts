@@ -8,6 +8,7 @@ import { ProductModule } from "../product/product.module";
 import { PromptModule } from "../prompt/prompt.module";
 import { StoreModule } from "../store/store.module";
 import { TelegramModule } from "../telegram/telegram.module";
+import { YouTubeModule } from "../youtube/youtube.module";
 import { MENU_QUEUE } from "../queue/constants";
 
 @Module({
@@ -17,6 +18,7 @@ import { MENU_QUEUE } from "../queue/constants";
     PromptModule,
     StoreModule,
     TelegramModule,
+    YouTubeModule,
     BullModule.registerQueue({ name: MENU_QUEUE }),
   ],
   controllers: [MenuController],

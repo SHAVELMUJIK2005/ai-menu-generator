@@ -33,9 +33,11 @@ export class MagnitScraper extends BaseScraper {
 
   async search(query: string): Promise<MatchResult[]> {
     try {
-      const resp = await this.http.get<MagnitResponse>("/api/v1/search/goods", {
-        params: { q: query, limit: 15 },
-      });
+      const resp = await this.withRetry(() =>
+        this.http.get<MagnitResponse>("/api/v1/search/goods", {
+          params: { q: query, limit: 15 },
+        }),
+      );
 
       const products =
         resp.data?.goods ??

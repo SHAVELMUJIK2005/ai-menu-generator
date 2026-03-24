@@ -22,6 +22,7 @@ const MealSchema = z.object({
   cookingMin: z.number(),
   nutrition: NutritionSchema,
   cost: z.number(),
+  videoUrl: z.string().url().optional(), // YouTube URL, добавляется для Premium
 });
 
 const DayTotalSchema = z.object({
