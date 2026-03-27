@@ -70,6 +70,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - certbot_www:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
+      - ./frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     networks:
