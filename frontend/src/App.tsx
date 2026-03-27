@@ -10,6 +10,8 @@ import MenuPage from './pages/MenuPage'
 import ShoppingListPage from './pages/ShoppingListPage'
 import ProfilePage from './pages/ProfilePage'
 import FavoritesPage from './pages/FavoritesPage'
+import PremiumPage from './pages/PremiumPage'
+import SettingsPage from './pages/SettingsPage'
 import BottomNav from './components/BottomNav'
 import { useAuth } from './hooks/useAuth'
 import { useTelegramReady } from './hooks/useTelegram'
@@ -44,6 +46,8 @@ function Layout() {
         <Route path="/shopping" element={<ShoppingListPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
+        <Route path="/premium" element={<PremiumPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
       {showNav && <BottomNav />}
     </>

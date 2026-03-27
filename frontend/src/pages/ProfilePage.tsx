@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { RefreshCw, ChevronRight, LogOut, Star } from 'lucide-react'
+import { RefreshCw, ChevronRight, LogOut, Star, Settings } from 'lucide-react'
 import { useOnboardingStore } from '../store/onboardingStore'
 import { useProfile, useStats } from '../hooks/useProfile'
 import { useMenuHistory } from '../hooks/useMenu'
-import { useSubscription, useBuyPremium } from '../hooks/useSubscription'
+import { useSubscription } from '../hooks/useSubscription'
 import { useHaptic } from '../hooks/useTelegram'
 import { useMenuStore } from '../store/menuStore'
 import type { MenuResponse } from '../../../shared/src/types'
@@ -43,8 +43,7 @@ export default function ProfilePage() {
   const { data: historyData, isLoading: historyLoading } = useMenuHistory()
   const { data: stats, isLoading: statsLoading } = useStats()
   const { data: subscription } = useSubscription()
-  const { mutate: buyPremium, isPending: buyingPremium } = useBuyPremium()
-  const { impact, success } = useHaptic()
+  const { impact } = useHaptic()
   const { setMenu } = useMenuStore()
 
   const isPremium = subscription?.isPremium ?? profile?.isPremium ?? false
@@ -203,6 +202,22 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-2 mb-6">
           <motion.div
             whileTap={{ scale: 0.98 }}
+            onClick={() => { impact('light'); navigate('/settings') }}
+            className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
+            style={{
+              background: 'rgba(255,255,255,0.72)',
+              backdropFilter: 'blur(20px)',
+              border: '1.5px solid rgba(255,255,255,0.5)',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <Settings size={16} className="text-gray-400" />
+              <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Настройки</span>
+            </div>
+            <ChevronRight size={16} className="text-gray-300" />
+          </motion.div>
+          <motion.div
+            whileTap={{ scale: 0.98 }}
             onClick={() => {
               localStorage.removeItem('onboarding_done')
               navigate('/onboarding')
@@ -267,12 +282,11 @@ export default function ProfilePage() {
               </ul>
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => { success(); buyPremium() }}
-                disabled={buyingPremium}
+                onClick={() => { impact('light'); navigate('/premium') }}
                 className="w-full py-2 rounded-xl text-sm font-semibold"
-                style={{ background: 'var(--color-accent)', color: 'white', opacity: buyingPremium ? 0.7 : 1 }}
+                style={{ background: 'var(--color-accent)', color: 'white' }}
               >
-                {buyingPremium ? 'Открываем оплату...' : 'Подписаться за 199 ⭐'}
+                Подробнее о Premium ⭐
               </motion.button>
             </motion.div>
           )}

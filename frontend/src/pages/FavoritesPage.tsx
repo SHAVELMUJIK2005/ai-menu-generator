@@ -4,6 +4,7 @@ import { Heart, UtensilsCrossed } from 'lucide-react'
 import { useMenuHistory } from '../hooks/useMenu'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import type { MenuRecord } from '../api/menu'
 
 function MenuHistoryCard({ record, onLoad }: { record: MenuRecord; onLoad: () => void }) {
@@ -64,7 +65,11 @@ export default function FavoritesPage() {
   const navigate = useNavigate()
   const { impact } = useHaptic()
   const { setMenu } = useMenuStore()
-  const { data, isLoading } = useMenuHistory(1)
+  const { data, isLoading, refetch } = useMenuHistory(1)
+
+  const { isPulling, pullProgress, isRefreshing } = usePullToRefresh({
+    onRefresh: async () => { await refetch() },
+  })
 
   const records: MenuRecord[] = (data?.items ?? []).map((item: Omit<MenuRecord, 'userId' | 'status' | 'shoppingList'>) => ({
     ...item,
@@ -82,6 +87,18 @@ export default function FavoritesPage() {
 
   return (
     <div className="flex flex-col min-h-screen pb-24" style={{ background: 'var(--color-bg)' }}>
+      {/* Pull-to-refresh индикатор */}
+      {(isPulling || isRefreshing) && (
+        <div className="flex justify-center pt-4">
+          <motion.div
+            animate={{ rotate: isRefreshing ? 360 : 0 }}
+            transition={{ repeat: isRefreshing ? Infinity : 0, duration: 0.7, ease: 'linear' }}
+            style={{ opacity: isRefreshing ? 1 : pullProgress, color: 'var(--color-primary)' }}
+          >
+            ↻
+          </motion.div>
+        </div>
+      )}
       <div className="p-6 pt-10">
         <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--color-text)' }}>
           История меню
