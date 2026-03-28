@@ -9,11 +9,13 @@ import { MagnitScraper } from "./scrapers/magnit.scraper";
 import { VkusvillScraper } from "./scrapers/vkusvill.scraper";
 import { LentaScraper } from "./scrapers/lenta.scraper";
 import { PrismaModule } from "../prisma/prisma.module";
+import { AuthModule } from "../auth/auth.module";
 
 @Module({
   imports: [
     HttpModule,
     PrismaModule,
+    AuthModule,
   ],
   providers: [
     ScraperService,
