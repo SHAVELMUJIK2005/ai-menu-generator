@@ -177,7 +177,7 @@ export class MenuService {
             { role: "user", content: prompt.user },
           ],
           temperature: 0.7,
-          max_tokens: 2800,
+          max_tokens: 4000,
           response_format: { type: "json_object" },
         });
 

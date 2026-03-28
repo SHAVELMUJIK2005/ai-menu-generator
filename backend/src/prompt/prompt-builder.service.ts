@@ -124,7 +124,7 @@ export class PromptBuilderService {
           "ingredients": [
             {"name": "Продукт", "amount": 100, "unit": "г", "price": 30}
           ],
-          "recipeShort": "Краткий рецепт — 1 предложение",
+          "recipeShort": "Краткий рецепт 1-2 предложения",
           "cookingMin": 15,
           "nutrition": {"calories": 350, "protein": 20, "fat": 8, "carbs": 45},
           "cost": 120
