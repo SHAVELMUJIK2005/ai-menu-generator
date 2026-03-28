@@ -37,7 +37,7 @@ export default function GeneratingPage() {
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
   const navigatedRef = useRef(false)
 
-  const { startGenerate, startReroll, menuData, menuStatus } = useMenuJob()
+  const { startGenerate, startReroll, menuData, menuStatus, error: jobError } = useMenuJob()
   const { setMenu, budget } = useMenuStore()
   const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
 
@@ -81,6 +81,14 @@ export default function GeneratingPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuStatus, menuData])
+
+  useEffect(() => {
+    if (jobError) {
+      clearIntervals()
+      setError('generation')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobError])
 
   const run = () => {
     if (!navigator.onLine) { setError('network'); return }

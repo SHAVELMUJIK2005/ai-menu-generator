@@ -76,6 +76,7 @@ export function useMenu(id: string) {
       if (!status || status === 'PENDING') return 2000
       return false
     },
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
   })
 }
