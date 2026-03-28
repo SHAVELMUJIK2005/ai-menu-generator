@@ -171,6 +171,10 @@ jobs:
               sleep 1
             done
 
+            # Исправляем сломанную миграцию (P3009) — идемпотентно, безопасно запускать повторно
+            docker compose -f docker-compose.prod.yml exec -T backend \
+              npx prisma migrate resolve --applied 20260324221719_add_product_categories 2>/dev/null || true
+
             # Миграции
             docker compose -f docker-compose.prod.yml exec -T backend \
               npx prisma migrate deploy
