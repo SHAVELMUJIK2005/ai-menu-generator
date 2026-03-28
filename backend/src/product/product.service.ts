@@ -46,7 +46,7 @@ export class ProductService {
    * Ограничивает размер промпта до ~2000 токенов вместо ~8000.
    */
   async getForPrompt(excludeNames: string[] = []) {
-    const MAX_PER_CATEGORY = 12;
+    const MAX_PER_CATEGORY = 6;
 
     const all = await this.prisma.product.findMany({
       where: { canonicalName: { notIn: excludeNames } },

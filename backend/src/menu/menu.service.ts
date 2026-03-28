@@ -100,7 +100,7 @@ export class MenuService {
     }
 
     const storeChain = storeChainStr as StoreChain | undefined;
-    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
+    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "google/gemini-flash-1.5";
 
     // Проверяем кэш (reroll всегда пропускает кэш — иначе вернётся то же меню)
     const dto = { days: daysCount, budget: budgetInput, storeChain: storeChainStr } as GenerateMenuDto;
@@ -177,7 +177,7 @@ export class MenuService {
             { role: "user", content: prompt.user },
           ],
           temperature: 0.7,
-          max_tokens: 4000,
+          max_tokens: 2800,
           response_format: { type: "json_object" },
         });
 
@@ -410,7 +410,7 @@ export class MenuService {
     const currentMeal = day.meals.find((m) => m.type === mealType);
     if (!currentMeal) throw new HttpException("Блюдо не найдено", HttpStatus.BAD_REQUEST);
 
-    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
+    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "google/gemini-flash-1.5";
     const products = await this.productService.getForPrompt(user.dislikedProducts);
 
     // Все блюда текущего меню — исключим их из нового
@@ -527,6 +527,9 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
     // Приблизительные цены OpenRouter
     if (model.includes("claude")) {
       return (tokensIn * 0.000003 + tokensOut * 0.000015);
+    }
+    if (model.includes("gemini")) {
+      return (tokensIn * 0.000000075 + tokensOut * 0.0000003);
     }
     return (tokensIn * 0.0000004 + tokensOut * 0.0000012);
   }
