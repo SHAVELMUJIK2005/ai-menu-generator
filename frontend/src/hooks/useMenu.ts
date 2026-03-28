@@ -73,9 +73,10 @@ export function useMenu(id: string) {
     enabled: !!id,
     refetchInterval: (query) => {
       const status = (query.state?.data as MenuRecord | undefined)?.status
-      if (status === 'PENDING') return 2000
+      if (!status || status === 'PENDING') return 2000
       return false
     },
+    refetchOnWindowFocus: true,
   })
 }
 

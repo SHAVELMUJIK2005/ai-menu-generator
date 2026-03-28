@@ -75,7 +75,7 @@ export default function GeneratingPage() {
     if (menuStatus === 'DONE' && menuData?.parsedMenu) {
       setMenu(menuData.parsedMenu, menuData.id)
       finishAndNavigate()
-    } else if (menuStatus === 'FAILED') {
+    } else if (menuStatus === 'DONE' || menuStatus === 'FAILED') {
       clearIntervals()
       setError('generation')
     }
