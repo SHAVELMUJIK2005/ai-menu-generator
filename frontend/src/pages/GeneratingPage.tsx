@@ -84,7 +84,6 @@ export default function GeneratingPage() {
   const run = () => {
     if (!navigator.onLine) { setError('network'); return }
     setError(null)
-    setProgress(0)
     navigatedRef.current = false
     startAnimations()
 
