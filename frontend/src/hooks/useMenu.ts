@@ -39,22 +39,6 @@ export function useMenuJob() {
   }
 }
 
-/** @deprecated используй useMenuJob */
-export function useGenerateMenu() {
-  const [pendingMenuId, setPendingMenuId] = useState<string | null>(null)
-  const mutation = useMutation({
-    mutationFn: (request: GenerateMenuRequest) => generateMenu(request),
-    onSuccess: (data) => setPendingMenuId(data.menuId),
-  })
-  const menuQuery = useMenu(pendingMenuId ?? '')
-  return {
-    ...mutation,
-    pendingMenuId,
-    menuData: menuQuery.data,
-    menuStatus: menuQuery.data?.status ?? (pendingMenuId ? 'PENDING' : null),
-    isGenerating: mutation.isPending || menuQuery.data?.status === 'PENDING',
-  }
-}
 
 export function useMenuHistory(page = 1) {
   return useQuery({

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, RefreshCw, Star } from 'lucide-react'
-import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
 import { useRateMenu, useSubstituteMeal } from '../hooks/useMenu'
@@ -259,9 +258,26 @@ export default function MenuPage() {
   const { impact } = useHaptic()
   const currentMenu = useMenuStore((s) => s.currentMenu)
   const currentMenuId = useMenuStore((s) => s.currentMenuId)
-  const menu = currentMenu ?? menuMock
 
-  const day = menu.days[activeDay]
+  if (!currentMenu) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-8 text-center" style={{ background: 'var(--color-bg)' }}>
+        <span style={{ fontSize: 64 }}>🥑</span>
+        <h2 className="font-bold text-lg" style={{ color: 'var(--color-text)' }}>Меню ещё не создано</h2>
+        <p className="text-sm text-gray-400">Составьте персональное меню на 3 дня</p>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => navigate('/budget')}
+          className="px-6 py-3 rounded-2xl font-semibold text-white text-sm"
+          style={{ background: 'var(--color-primary)' }}
+        >
+          Составить меню
+        </motion.button>
+      </div>
+    )
+  }
+
+  const day = currentMenu.days[activeDay]
 
   return (
     <div className="flex flex-col min-h-screen pb-32" style={{ background: 'var(--color-bg)' }}>
@@ -270,12 +286,12 @@ export default function MenuPage() {
           Ваше меню на 3 дня
         </h1>
         <p className="text-sm text-gray-400 mb-5">
-          Бюджет: {menu.totalCost} ₽ · Остаток: {menu.budgetLeft} ₽
+          Бюджет: {currentMenu.totalCost} ₽ · Остаток: {currentMenu.budgetLeft} ₽
         </p>
 
         {/* табы дней */}
         <div className="flex gap-2 mb-6">
-          {menu.days.map((d, i) => (
+          {currentMenu.days.map((d, i) => (
             <motion.button
               key={i}
               whileTap={{ scale: 0.95 }}

@@ -11,9 +11,7 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
 
   // CORS для фронтенда и Telegram
-  // FRONTEND_URL — Vercel URL фронтенда (задаётся через env)
   const frontendUrls = [
-    "http://localhost:5173",
     "https://t.me",
     "https://greenmenuai.ru",
     "https://www.greenmenuai.ru",
@@ -46,8 +44,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`🚀 Backend: http://localhost:${process.env.PORT ?? 3000}/api`);
-  console.log(`📚 Swagger: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`Backend started on port ${port}`);
 }
 bootstrap();
