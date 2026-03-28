@@ -33,6 +33,7 @@ export default function GeneratingPage() {
   const [msgIndex, setMsgIndex] = useState(0)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<'network' | 'generation' | 'limit' | null>(null)
+  const [errorDetail, setErrorDetail] = useState<string | undefined>(undefined)
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
   const navigatedRef = useRef(false)
 
@@ -79,7 +80,11 @@ export default function GeneratingPage() {
     if (jobError) {
       clearIntervals()
       setPendingMenuId(null)
-      setError('generation')
+      const detail = (jobError as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? (jobError as Error)?.message
+      setErrorDetail(detail)
+      const status = (jobError as { response?: { status?: number } })?.response?.status
+      setError(status === 429 ? 'limit' : 'generation')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobError])
@@ -121,7 +126,7 @@ export default function GeneratingPage() {
     return clearIntervals
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) return <ErrorScreen type={error} onRetry={run} />
+  if (error) return <ErrorScreen type={error} onRetry={run} message={errorDetail} />
 
   const showLoading = !done && !error
 
