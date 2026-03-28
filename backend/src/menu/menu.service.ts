@@ -100,7 +100,7 @@ export class MenuService {
     }
 
     const storeChain = storeChainStr as StoreChain | undefined;
-    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "google/gemini-flash-1.5";
+    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
 
     // Проверяем кэш (reroll всегда пропускает кэш — иначе вернётся то же меню)
     const dto = { days: daysCount, budget: budgetInput, storeChain: storeChainStr } as GenerateMenuDto;
@@ -415,7 +415,7 @@ export class MenuService {
     const currentMeal = day.meals.find((m) => m.type === mealType);
     if (!currentMeal) throw new HttpException("Блюдо не найдено", HttpStatus.BAD_REQUEST);
 
-    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "google/gemini-flash-1.5";
+    const aiModel = user.isPremium ? "anthropic/claude-sonnet-4-5" : "openai/gpt-4o-mini";
     const products = await this.productService.getForPrompt(user.dislikedProducts);
 
     // Все блюда текущего меню — исключим их из нового
