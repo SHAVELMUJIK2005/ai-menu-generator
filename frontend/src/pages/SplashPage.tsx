@@ -1,26 +1,54 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import AvocadoMascot from '../components/AvocadoMascot'
 import { useMenuStore } from '../store/menuStore'
+import { getMenuHistory } from '../api/menu'
 
 export default function SplashPage() {
   const navigate = useNavigate()
-  const { currentMenuId } = useMenuStore()
+  const { currentMenuId, setMenu } = useMenuStore()
+  const splashDone = useRef(false)
+  const restoreDone = useRef(false)
 
+  const tryNavigate = useRef(() => {})
+  tryNavigate.current = () => {
+    if (!splashDone.current || !restoreDone.current) return
+    const done = localStorage.getItem('onboarding_done')
+    const { currentMenuId: id } = useMenuStore.getState()
+    if (!done) navigate('/onboarding')
+    else if (id) navigate('/menu')
+    else navigate('/budget')
+  }
+
+  // Восстанавливаем последнее меню с сервера если в store пусто
+  useEffect(() => {
+    if (currentMenuId) {
+      restoreDone.current = true
+      tryNavigate.current()
+      return
+    }
+    getMenuHistory(1, 1)
+      .then((data) => {
+        const latest = data?.items?.[0]
+        if (latest?.parsedMenu) setMenu(latest.parsedMenu, latest.id)
+      })
+      .catch(() => {})
+      .finally(() => {
+        restoreDone.current = true
+        tryNavigate.current()
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Минимальное время splash-экрана
   useEffect(() => {
     const timer = setTimeout(() => {
-      const done = localStorage.getItem('onboarding_done')
-      if (!done) {
-        navigate('/onboarding')
-      } else if (currentMenuId) {
-        navigate('/menu')
-      } else {
-        navigate('/budget')
-      }
-    }, 2000)
+      splashDone.current = true
+      tryNavigate.current()
+    }, 1800)
     return () => clearTimeout(timer)
-  }, [navigate, currentMenuId])
+  }, [])
 
   return (
     <motion.div
