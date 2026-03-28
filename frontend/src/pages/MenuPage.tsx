@@ -91,21 +91,29 @@ function MealCard({ meal, onClick }: { meal: Meal; onClick: () => void }) {
 function MealSheet({
   meal,
   menuId,
+  dayNumber,
   onClose,
 }: {
   meal: Meal
   menuId: string | null
+  dayNumber: number
   onClose: () => void
 }) {
   const { mutate: substitute, isPending: isSubstituting } = useSubstituteMeal()
+  const { setMenu } = useMenuStore()
   const { impact } = useHaptic()
 
   const handleSubstitute = () => {
     if (!menuId) return
     impact('medium')
     substitute(
-      { id: menuId, dayNumber: 1, mealType: meal.type as 'breakfast' | 'lunch' | 'dinner' | 'snack' },
-      { onSuccess: onClose },
+      { id: menuId, dayNumber, mealType: meal.type as 'breakfast' | 'lunch' | 'dinner' | 'snack' },
+      {
+        onSuccess: (updatedMenu) => {
+          setMenu(updatedMenu, menuId)
+          onClose()
+        },
+      },
     )
   }
 
@@ -393,7 +401,7 @@ export default function MenuPage() {
               className="fixed inset-0 z-40 bg-black"
               onClick={() => setSelectedMeal(null)}
             />
-            <MealSheet meal={selectedMeal} menuId={currentMenuId} onClose={() => setSelectedMeal(null)} />
+            <MealSheet meal={selectedMeal} menuId={currentMenuId} dayNumber={activeDay + 1} onClose={() => setSelectedMeal(null)} />
           </>
         )}
       </AnimatePresence>

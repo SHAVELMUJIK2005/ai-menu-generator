@@ -36,8 +36,8 @@ export default function GeneratingPage() {
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
   const navigatedRef = useRef(false)
 
-  const { startGenerate, startReroll, menuData, menuStatus, error: jobError } = useMenuJob()
-  const { setMenu, budget } = useMenuStore()
+  const { startGenerate, startReroll, menuData, menuStatus, pendingMenuId, error: jobError } = useMenuJob()
+  const { setMenu, budget, setPendingMenuId } = useMenuStore()
   const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
 
   const messages = isRerollMode ? REROLL_MESSAGES : MESSAGES
@@ -58,6 +58,7 @@ export default function GeneratingPage() {
     if (navigatedRef.current) return
     navigatedRef.current = true
     clearIntervals()
+    setPendingMenuId(null)
     setDone(true)
     setTimeout(() => navigate('/menu'), 900)
   }
@@ -76,6 +77,7 @@ export default function GeneratingPage() {
   useEffect(() => {
     if (jobError) {
       clearIntervals()
+      setPendingMenuId(null)
       setError('generation')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,7 +108,13 @@ export default function GeneratingPage() {
   }
 
   useEffect(() => {
-    run()
+    // Если уже есть pendingMenuId в store (например, WebView перезагрузился
+    // пока шла генерация) — просто запускаем анимацию и ждём поллинга
+    if (pendingMenuId) {
+      startAnimations()
+    } else {
+      run()
+    }
     return clearIntervals
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

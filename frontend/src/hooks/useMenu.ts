@@ -1,15 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
 import { generateMenu, getMenuHistory, getMenu, rerollMenu, rateMenu, substituteMeal } from '../api/menu'
 import type { MenuRecord } from '../api/menu'
 import type { GenerateMenuRequest, RateMenuRequest, SubstituteMealRequest } from '../../../shared/src/types'
+import { useMenuStore } from '../store/menuStore'
 
 /**
  * Единый хук для генерации и reroll меню.
- * Оба сценария возвращают {menuId, status: PENDING} и поллятся одинаково.
+ * pendingMenuId персистируется в store (localStorage) — выживает при
+ * перезагрузке WebView на мобильном Telegram.
  */
 export function useMenuJob() {
-  const [pendingMenuId, setPendingMenuId] = useState<string | null>(null)
+  const { pendingMenuId, setPendingMenuId } = useMenuStore()
 
   const generateMutation = useMutation({
     mutationFn: (request: GenerateMenuRequest) => generateMenu(request),
