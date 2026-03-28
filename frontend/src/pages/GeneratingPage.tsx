@@ -69,6 +69,7 @@ export default function GeneratingPage() {
       finishAndNavigate()
     } else if (menuStatus === 'DONE' || menuStatus === 'FAILED') {
       clearIntervals()
+      setPendingMenuId(null)
       setError('generation')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,6 +86,7 @@ export default function GeneratingPage() {
 
   const run = () => {
     if (!navigator.onLine) { setError('network'); return }
+    setPendingMenuId(null)
     setError(null)
     navigatedRef.current = false
     startAnimations()
@@ -108,9 +110,10 @@ export default function GeneratingPage() {
   }
 
   useEffect(() => {
-    // Если уже есть pendingMenuId в store (например, WebView перезагрузился
-    // пока шла генерация) — просто запускаем анимацию и ждём поллинга
-    if (pendingMenuId) {
+    // Если pendingMenuId есть в store и статус не FAILED — WebView
+    // перезагрузился пока шла генерация, просто ждём поллинга
+    const status = menuData?.status
+    if (pendingMenuId && status !== 'FAILED' && status !== 'DONE') {
       startAnimations()
     } else {
       run()
