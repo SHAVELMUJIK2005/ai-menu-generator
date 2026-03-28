@@ -178,14 +178,19 @@ export class MenuService {
           ],
           temperature: 0.7,
           max_tokens: 4000,
-          response_format: { type: "json_object" },
+          // response_format только для OpenAI-совместимых моделей
+          ...(aiModel.includes("gpt") || aiModel.includes("openai")
+            ? { response_format: { type: "json_object" as const } }
+            : {}),
         });
 
         tokensIn = response.usage?.prompt_tokens ?? 0;
         tokensOut = response.usage?.completion_tokens ?? 0;
 
         const raw = response.choices[0]?.message?.content ?? "";
-        const validated = MenuResponseSchema.safeParse(JSON.parse(raw));
+        // Убираем markdown-обёртку ```json ... ``` если модель её добавила
+        const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+        const validated = MenuResponseSchema.safeParse(JSON.parse(cleaned));
 
         if (validated.success) {
           parsedMenu = validated.data;
