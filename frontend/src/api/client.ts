@@ -61,6 +61,8 @@ apiClient.interceptors.response.use(
     } catch {
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
+      // Токены протухли — перезагружаем чтобы Telegram выдал новый initData
+      window.location.reload()
       return Promise.reject(err)
     } finally {
       isRefreshing = false
