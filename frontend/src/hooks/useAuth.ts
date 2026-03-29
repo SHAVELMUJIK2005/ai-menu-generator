@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import { authenticateDev, authenticateWithTelegram } from '../api/auth'
 import { getTelegramInitData } from './useTelegram'
 
-// Флаг: токен уже получен в этой сессии — не повторяем запрос
 let authInProgress = false
 
 export function useAuth() {
   const [isReady, setIsReady] = useState(() => !!localStorage.getItem('access_token'))
-  const [error, setError] = useState(false)
+  const [authFailed, setAuthFailed] = useState(false)
 
   useEffect(() => {
     if (isReady || authInProgress) return
@@ -31,11 +30,11 @@ export function useAuth() {
 
         localStorage.setItem('access_token', res.accessToken)
         localStorage.setItem('refresh_token', res.refreshToken)
+        setAuthFailed(false)
         setIsReady(true)
       } catch {
-        // Бэкенд недоступен — разрешаем работать в офлайн/мок режиме
-        setIsReady(true)
-        setError(true)
+        setAuthFailed(true)
+        // НЕ выставляем isReady=true — приложение не рендерится без токена
       } finally {
         authInProgress = false
       }
@@ -44,5 +43,10 @@ export function useAuth() {
     run()
   }, [isReady])
 
-  return { isReady, authFailed: error }
+  const retry = () => {
+    setAuthFailed(false)
+    setIsReady(false)
+  }
+
+  return { isReady, authFailed, retry }
 }

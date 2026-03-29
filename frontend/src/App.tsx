@@ -24,7 +24,7 @@ const NAV_ROUTES = ['/menu', '/shopping', '/favorites', '/profile']
 function Layout() {
   const { pathname } = useLocation()
   const showNav = NAV_ROUTES.includes(pathname)
-  const { isReady } = useAuth()
+  const { isReady, authFailed, retry } = useAuth()
   const initTelegram = useTelegramReady()
 
   // Сообщаем Telegram что приложение загружено и разворачиваем на весь экран
@@ -32,7 +32,28 @@ function Layout() {
     if (isReady) initTelegram()
   }, [isReady, initTelegram])
 
-  // Ждём завершения авторизации (токен получен или бэкенд недоступен)
+  // Авторизация провалилась — показываем экран с кнопкой повтора
+  if (authFailed) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center min-h-screen gap-6 p-6"
+        style={{ background: 'var(--color-bg)' }}
+      >
+        <p className="text-base text-center" style={{ color: 'var(--color-text)' }}>
+          Не удалось подключиться к серверу
+        </p>
+        <button
+          onClick={retry}
+          className="px-6 py-3 rounded-2xl text-white font-semibold"
+          style={{ background: 'var(--color-primary)' }}
+        >
+          Попробовать снова
+        </button>
+      </div>
+    )
+  }
+
+  // Ждём завершения авторизации (токен ещё не получен)
   if (!isReady) return null
 
   return (
