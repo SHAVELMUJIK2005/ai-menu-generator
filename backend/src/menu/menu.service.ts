@@ -12,7 +12,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { RedisService } from "../redis/redis.service";
 import { ProductService } from "../product/product.service";
 import { PromptBuilderService } from "../prompt/prompt-builder.service";
-import { MenuResponseSchema, MenuResponseType } from "./menu.schema";
+import { MenuResponseSchema, MenuResponseType, MealSchema } from "./menu.schema";
 import { GenerateMenuDto } from "./dto/generate-menu.dto";
 import { MenuStatus, StoreChain, Region } from "@prisma/client";
 import { StoreService } from "../store/store.service";
@@ -456,7 +456,13 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
     const raw = response.choices[0]?.message?.content ?? "{}";
     let newMeal: MenuResponseType["days"][0]["meals"][0];
     try {
-      newMeal = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      const validated = MealSchema.safeParse(parsed);
+      if (!validated.success) {
+        this.logger.warn(`Substitute meal validation failed: ${validated.error.message}`);
+        throw new Error("Invalid meal format from AI");
+      }
+      newMeal = validated.data;
     } catch {
       throw new HttpException("Не удалось сгенерировать альтернативное блюдо", HttpStatus.INTERNAL_SERVER_ERROR);
     }

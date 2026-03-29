@@ -14,7 +14,7 @@ const NutritionSchema = z.object({
   carbs: z.number(),
 });
 
-const MealSchema = z.object({
+export const MealSchema = z.object({
   type: z.enum(["breakfast", "lunch", "dinner", "snack"]),
   name: z.string(),
   ingredients: z.array(IngredientSchema),

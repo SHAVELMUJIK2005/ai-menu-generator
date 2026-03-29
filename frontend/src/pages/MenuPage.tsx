@@ -102,16 +102,24 @@ function MealSheet({
   const { mutate: substitute, isPending: isSubstituting } = useSubstituteMeal()
   const { setMenu } = useMenuStore()
   const { impact } = useHaptic()
+  const [substituteError, setSubstituteError] = useState<string | null>(null)
 
   const handleSubstitute = () => {
     if (!menuId) return
     impact('medium')
+    setSubstituteError(null)
     substitute(
       { id: menuId, dayNumber, mealType: meal.type as 'breakfast' | 'lunch' | 'dinner' | 'snack' },
       {
         onSuccess: (updatedMenu) => {
           setMenu(updatedMenu, menuId)
           onClose()
+        },
+        onError: (err) => {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+            ?? (err as Error)?.message
+            ?? 'Не удалось заменить блюдо'
+          setSubstituteError(msg)
         },
       },
     )
@@ -182,18 +190,25 @@ function MealSheet({
 
       {/* кнопка замены блюда */}
       {menuId && (
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handleSubstitute}
-          disabled={isSubstituting}
-          className="w-full py-3 rounded-2xl font-semibold text-sm mb-4"
-          style={{
-            background: isSubstituting ? 'rgba(0,0,0,0.04)' : 'rgba(76,175,80,0.1)',
-            color: isSubstituting ? '#bbb' : 'var(--color-primary)',
-          }}
-        >
-          {isSubstituting ? 'Заменяем...' : '🔄 Заменить это блюдо'}
-        </motion.button>
+        <>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleSubstitute}
+            disabled={isSubstituting}
+            className="w-full py-3 rounded-2xl font-semibold text-sm mb-2"
+            style={{
+              background: isSubstituting ? 'rgba(0,0,0,0.04)' : 'rgba(76,175,80,0.1)',
+              color: isSubstituting ? '#bbb' : 'var(--color-primary)',
+            }}
+          >
+            {isSubstituting ? 'Заменяем...' : '🔄 Заменить это блюдо'}
+          </motion.button>
+          {substituteError && (
+            <p className="text-xs text-center mb-3" style={{ color: '#e53935' }}>
+              {substituteError}
+            </p>
+          )}
+        </>
       )}
 
       {/* видео рецепт */}
