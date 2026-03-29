@@ -15,9 +15,9 @@ export default function LiquidCard({ children, className = '', onClick, selected
       style={{
         background: selected
           ? 'rgba(76, 175, 80, 0.15)'
-          : 'rgba(255, 255, 255, 0.72)',
+          : 'var(--color-card)',
         backdropFilter: 'blur(20px) saturate(180%)',
-        border: selected ? '2px solid #4CAF50' : '1.5px solid rgba(255,255,255,0.5)',
+        border: selected ? '2px solid #4CAF50' : `1.5px solid var(--color-card-border)`,
         cursor: onClick ? 'pointer' : 'default',
       }}
     >

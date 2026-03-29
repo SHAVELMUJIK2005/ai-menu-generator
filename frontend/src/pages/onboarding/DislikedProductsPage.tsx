@@ -36,11 +36,12 @@ export default function DislikedProductsPage() {
 
   const handleDone = () => {
     success()
+    const wasAlreadyDone = !!localStorage.getItem('onboarding_done')
     localStorage.setItem('onboarding_done', '1')
     if (profileType && goal) {
       updateProfile({ profileType, goal, dislikedProducts })
     }
-    navigate('/budget')
+    navigate(wasAlreadyDone ? '/profile' : '/budget')
   }
 
   return (
@@ -69,9 +70,9 @@ export default function DislikedProductsPage() {
           placeholder="Добавить свой продукт..."
           className="flex-1 px-4 py-2.5 rounded-2xl text-sm outline-none"
           style={{
-            background: 'rgba(255,255,255,0.72)',
+            background: 'var(--color-card)',
             backdropFilter: 'blur(10px)',
-            border: '1.5px solid rgba(255,255,255,0.5)',
+            border: `1.5px solid var(--color-card-border)`,
             color: 'var(--color-text)',
           }}
         />
@@ -100,9 +101,9 @@ export default function DislikedProductsPage() {
               onClick={() => { impact('light'); toggleDislikedProduct(product) }}
               className="px-4 py-2 rounded-full text-sm font-medium transition-all"
               style={{
-                background: isSelected ? 'rgba(255,107,53,0.15)' : 'rgba(255,255,255,0.72)',
+                background: isSelected ? 'rgba(255,107,53,0.15)' : 'var(--color-card)',
                 backdropFilter: 'blur(10px)',
-                border: isSelected ? '1.5px solid #FF6B35' : '1.5px solid rgba(255,255,255,0.5)',
+                border: isSelected ? '1.5px solid #FF6B35' : `1.5px solid var(--color-card-border)`,
                 color: isSelected ? '#FF6B35' : 'var(--color-text)',
                 textDecoration: isSelected ? 'line-through' : 'none',
               }}

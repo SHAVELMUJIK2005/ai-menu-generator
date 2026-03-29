@@ -129,8 +129,8 @@ export default function BudgetInputPage() {
             onClick={() => { impact('light'); handleBudget(val) }}
             className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
             style={{
-              background: budget === val ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.72)',
-              border: budget === val ? '1.5px solid #4CAF50' : '1.5px solid rgba(255,255,255,0.5)',
+              background: budget === val ? 'rgba(76,175,80,0.15)' : 'var(--color-card)',
+              border: budget === val ? '1.5px solid #4CAF50' : `1.5px solid var(--color-card-border)`,
               color: budget === val ? '#4CAF50' : 'var(--color-text)',
               backdropFilter: 'blur(10px)',
             }}
@@ -152,10 +152,10 @@ export default function BudgetInputPage() {
               onClick={() => handleDays(d)}
               className="flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all"
               style={{
-                background: active ? 'var(--color-primary)' : 'rgba(255,255,255,0.72)',
+                background: active ? 'var(--color-primary)' : 'var(--color-card)',
                 color: active ? 'white' : locked ? '#bbb' : 'var(--color-text)',
                 backdropFilter: 'blur(10px)',
-                border: active ? 'none' : '1.5px solid rgba(255,255,255,0.5)',
+                border: active ? 'none' : `1.5px solid var(--color-card-border)`,
               }}
             >
               {d} дня
@@ -169,9 +169,9 @@ export default function BudgetInputPage() {
       <div
         className="rounded-2xl p-4 mb-8 flex flex-col gap-1"
         style={{
-          background: 'rgba(255,255,255,0.72)',
+          background: 'var(--color-card)',
           backdropFilter: 'blur(20px)',
-          border: '1.5px solid rgba(255,255,255,0.5)',
+          border: `1.5px solid var(--color-card-border)`,
         }}
       >
         <div className="flex justify-between text-sm">

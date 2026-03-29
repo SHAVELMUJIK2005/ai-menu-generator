@@ -62,7 +62,7 @@ export default function StoreSelectPage() {
               <span
                 className="text-xs font-bold px-2 py-0.5 rounded-lg"
                 style={{
-                  background: storeChain === id ? 'rgba(76,175,80,0.15)' : 'rgba(0,0,0,0.05)',
+                  background: storeChain === id ? 'rgba(76,175,80,0.15)' : 'var(--color-subtle-bg)',
                   color: storeChain === id ? 'var(--color-primary)' : '#999',
                 }}
               >
@@ -79,10 +79,10 @@ export default function StoreSelectPage() {
         onClick={() => { impact('light'); nextStep() }}
         className="mt-auto py-4 rounded-2xl font-semibold text-base transition-all"
         style={{
-          background: storeChain ? 'var(--color-primary)' : 'rgba(255,255,255,0.72)',
+          background: storeChain ? 'var(--color-primary)' : 'var(--color-card)',
           color: storeChain ? 'white' : 'var(--color-text)',
           backdropFilter: 'blur(20px)',
-          border: '1.5px solid rgba(255,255,255,0.5)',
+          border: `1.5px solid var(--color-card-border)`,
         }}
       >
         {storeChain ? 'Продолжить' : 'Пропустить'}

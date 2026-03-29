@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import AgreementPage from './AgreementPage'
@@ -18,8 +19,13 @@ export default function OnboardingPage() {
   const { step } = useOnboardingStore()
   const StepComponent = STEPS[step] ?? STEPS[0]
 
+  // Прокрутка в начало при смене шага
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+  }, [step])
+
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-hidden">
       {/* прогресс-бар */}
       <div className="fixed top-0 left-0 right-0 h-1 z-50" style={{ background: 'rgba(0,0,0,0.05)' }}>
         <div

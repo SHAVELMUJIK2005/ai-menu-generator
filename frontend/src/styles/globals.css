@@ -5,12 +5,35 @@
   --color-accent: #FF6B35;
   --color-bg: #F5F5F0;
   --color-text: #1A1A2E;
+  --color-card: rgba(255,255,255,0.72);
+  --color-card-border: rgba(255,255,255,0.5);
+  --color-muted: #6b7280;
+  --color-sheet: rgba(255,255,255,0.97);
+  --color-subtle-bg: rgba(0,0,0,0.04);
+  --color-border-line: rgba(0,0,0,0.06);
+}
+
+[data-theme="dark"] {
+  --color-primary: #66BB6A;
+  --color-accent: #FF7043;
+  --color-bg: #1A1A1A;
+  --color-text: #F0F0F0;
+  --color-card: rgba(40,40,40,0.85);
+  --color-card-border: rgba(255,255,255,0.08);
+  --color-muted: #9ca3af;
+  --color-sheet: rgba(28,28,30,0.98);
+  --color-subtle-bg: rgba(255,255,255,0.06);
+  --color-border-line: rgba(255,255,255,0.08);
 }
 
 body {
   background-color: #e8e8e3;
   color: var(--color-text);
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+[data-theme="dark"] body {
+  background-color: #111;
 }
 
 /* Телефонный контейнер — на десктопе центрируется как мобайл */
