@@ -29,6 +29,7 @@ apiClient.interceptors.response.use(
     const refreshToken = localStorage.getItem('refresh_token')
     if (!refreshToken) {
       localStorage.removeItem('access_token')
+      window.location.reload()
       return Promise.reject(err)
     }
 

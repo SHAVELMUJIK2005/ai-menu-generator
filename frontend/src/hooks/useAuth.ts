@@ -10,6 +10,12 @@ export function useAuth() {
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    // Токен мог исчезнуть из localStorage после начального рендера (interceptor очистил)
+    const hasToken = !!localStorage.getItem('access_token')
+    if (isReady && !hasToken) {
+      setIsReady(false)
+      return
+    }
     if (isReady || authInProgress) return
 
     authInProgress = true
