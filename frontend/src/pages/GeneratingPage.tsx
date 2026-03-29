@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ErrorScreen from '../components/ErrorScreen'
 import AvocadoMascot from '../components/AvocadoMascot'
-import { useGenerateMenu } from '../hooks/useMenu'
+import { useMenuJob } from '../hooks/useMenu'
 import { useMenuStore } from '../store/menuStore'
 import { useOnboardingStore } from '../store/onboardingStore'
-import { menuMock } from '../mocks/menuMock'
 
 const MESSAGES = [
   'AI анализирует ваш профиль...',
@@ -16,17 +15,33 @@ const MESSAGES = [
   'Финальная проверка...',
 ]
 
+const REROLL_MESSAGES = [
+  'Анализируем предыдущее меню...',
+  'Ищем новые рецепты...',
+  'Считаем бюджет...',
+  'Составляем новый рацион...',
+  'Финальная проверка...',
+]
+
 export default function GeneratingPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const state = location.state as { mode?: string; menuId?: string } | null
+  const isRerollMode = state?.mode === 'reroll'
+  const rerollMenuId = state?.menuId ?? ''
+
   const [msgIndex, setMsgIndex] = useState(0)
-  const [progress, setProgress] = useState(0)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<'network' | 'generation' | 'limit' | null>(null)
+  const [errorDetail, setErrorDetail] = useState<string | undefined>(undefined)
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
+  const navigatedRef = useRef(false)
 
   const { mutate: generateMenu } = useGenerateMenu()
   const { setMenu, budget, days } = useMenuStore()
   const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
+
+  const messages = isRerollMode ? REROLL_MESSAGES : MESSAGES
 
   const clearIntervals = () => {
     intervalsRef.current.forEach(clearInterval)
@@ -35,29 +50,50 @@ export default function GeneratingPage() {
 
   const startAnimations = () => {
     const msgInterval = setInterval(() => {
-      setMsgIndex((i) => (i + 1) % MESSAGES.length)
+      setMsgIndex((i) => (i + 1) % messages.length)
     }, 2000)
-
-    const startTime = Date.now()
-    const progressInterval = setInterval(() => {
-      const elapsed = (Date.now() - startTime) / 1000
-      setProgress(Math.min(90, (elapsed / 30) * 90))
-    }, 200)
-
-    intervalsRef.current = [msgInterval, progressInterval]
+    intervalsRef.current = [msgInterval]
   }
 
   const finishAndNavigate = () => {
+    if (navigatedRef.current) return
+    navigatedRef.current = true
     clearIntervals()
-    setProgress(100)
+    setPendingMenuId(null)
     setDone(true)
     setTimeout(() => navigate('/menu'), 900)
   }
 
+  useEffect(() => {
+    if (menuStatus === 'DONE' && menuData?.parsedMenu) {
+      setMenu(menuData.parsedMenu, menuData.id)
+      finishAndNavigate()
+    } else if (menuStatus === 'DONE' || menuStatus === 'FAILED') {
+      clearIntervals()
+      setPendingMenuId(null)
+      setError('generation')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuStatus, menuData])
+
+  useEffect(() => {
+    if (jobError) {
+      clearIntervals()
+      setPendingMenuId(null)
+      const detail = (jobError as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? (jobError as Error)?.message
+      setErrorDetail(detail)
+      const status = (jobError as { response?: { status?: number } })?.response?.status
+      setError(status === 429 ? 'limit' : 'generation')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobError])
+
   const run = () => {
     if (!navigator.onLine) { setError('network'); return }
+    setPendingMenuId(null)
     setError(null)
-    setProgress(0)
+    navigatedRef.current = false
     startAnimations()
 
     generateMenu(
@@ -76,27 +112,25 @@ export default function GeneratingPage() {
           setMenu(data, data.id)
           finishAndNavigate()
         },
-        onError: (err: unknown) => {
-          const status = (err as { response?: { status?: number } })?.response?.status
-          if (status === 429) {
-            clearIntervals()
-            setError('limit')
-            return
-          }
-          // бэкенд недоступен — используем мок
-          setMenu(menuMock)
-          finishAndNavigate()
-        },
-      },
-    )
+      )
+    }
   }
 
   useEffect(() => {
-    run()
+    // Если pendingMenuId есть в store и статус не FAILED — WebView
+    // перезагрузился пока шла генерация, просто ждём поллинга
+    const status = menuData?.status
+    if (pendingMenuId && status !== 'FAILED' && status !== 'DONE') {
+      startAnimations()
+    } else {
+      run()
+    }
     return clearIntervals
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) return <ErrorScreen type={error} onRetry={run} />
+  if (error) return <ErrorScreen type={error} onRetry={run} message={errorDetail} />
+
+  const showLoading = !done && !error
 
   return (
     <div
@@ -134,9 +168,9 @@ export default function GeneratingPage() {
             className="text-base font-semibold text-center"
             style={{ color: 'var(--color-primary)' }}
           >
-            ✓ Меню готово!
+            ✓ {isRerollMode ? 'Новое меню готово!' : 'Меню готово!'}
           </motion.p>
-        ) : (
+        ) : showLoading ? (
           <motion.p
             key={msgIndex}
             initial={{ opacity: 0, y: 10 }}
@@ -146,20 +180,30 @@ export default function GeneratingPage() {
             className="text-base font-medium text-center"
             style={{ color: 'var(--color-text)' }}
           >
-            {MESSAGES[msgIndex]}
+            {messages[msgIndex]}
           </motion.p>
-        )}
+        ) : null}
       </AnimatePresence>
 
       <div className="w-full max-w-xs">
-        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: 'var(--color-primary)', width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
-          />
+        <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+          {done ? (
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full"
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 0.4 }}
+              style={{ background: 'var(--color-primary)' }}
+            />
+          ) : (
+            <motion.div
+              className="absolute inset-y-0 rounded-full"
+              style={{ background: 'var(--color-primary)', width: '35%' }}
+              animate={{ left: ['-35%', '100%'] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          )}
         </div>
-        <p className="text-xs text-center text-gray-400 mt-2">{Math.round(progress)}%</p>
       </div>
     </div>
   )

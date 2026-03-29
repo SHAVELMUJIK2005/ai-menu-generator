@@ -2,6 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
+import { GlobalHttpExceptionFilter } from "./common/filters/http-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,10 +11,20 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
 
   // CORS для фронтенда и Telegram
+  const frontendUrls = [
+    "https://t.me",
+    "https://greenmenuai.ru",
+    "https://www.greenmenuai.ru",
+    process.env.FRONTEND_URL,
+  ].filter(Boolean) as string[];
+
   app.enableCors({
-    origin: ["http://localhost:5173", "https://t.me"],
+    origin: frontendUrls,
     credentials: true,
   });
+
+  // Глобальный фильтр ошибок — унифицированный JSON формат
+  app.useGlobalFilters(new GlobalHttpExceptionFilter());
 
   // Глобальная валидация DTO
   app.useGlobalPipes(
@@ -33,8 +44,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`🚀 Backend: http://localhost:${process.env.PORT ?? 3000}/api`);
-  console.log(`📚 Swagger: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`Backend started on port ${port}`);
 }
 bootstrap();

@@ -16,10 +16,14 @@ import { FavoritesModule } from './favorites/favorites.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AdminModule } from './admin/admin.module';
 import { StoreModule } from './store/store.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { QueueModule } from './queue/queue.module';
+import { ScraperModule } from './scraper/scraper.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     // Глобальный rate limiter: 60 запросов в минуту на IP
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     PrismaModule,
@@ -34,6 +38,8 @@ import { StoreModule } from './store/store.module';
     SubscriptionModule,
     AdminModule,
     StoreModule,
+    QueueModule,
+    ScraperModule,
   ],
   controllers: [AppController],
   providers: [

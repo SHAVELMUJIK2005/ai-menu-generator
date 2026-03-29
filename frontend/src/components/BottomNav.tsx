@@ -1,12 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UtensilsCrossed, ShoppingCart, User } from 'lucide-react'
+import { UtensilsCrossed, User } from 'lucide-react'
 import { useHaptic } from '../hooks/useTelegram'
 import { useStats } from '../hooks/useProfile'
 
 const TABS = [
   { path: '/menu', label: 'Меню', icon: UtensilsCrossed },
-  { path: '/shopping', label: 'Покупки', icon: ShoppingCart },
   { path: '/profile', label: 'Профиль', icon: User },
 ]
 

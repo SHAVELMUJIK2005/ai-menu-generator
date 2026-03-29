@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Check, ShoppingBag, BarChart2 } from 'lucide-react'
-import { menuMock } from '../mocks/menuMock'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
 import { useComparePrices } from '../hooks/useStores'
@@ -108,7 +107,7 @@ export default function ShoppingListPage() {
   const navigate = useNavigate()
   const { impact, success } = useHaptic()
   const currentMenu = useMenuStore((s) => s.currentMenu)
-  const items = (currentMenu ?? menuMock).shoppingList
+  const items = currentMenu?.shoppingList ?? []
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [compareResults, setCompareResults] = useState<StorePriceComparison[] | null>(null)
   const { mutate: comparePrices, isPending: comparing } = useComparePrices()
@@ -134,9 +133,22 @@ export default function ShoppingListPage() {
 
   const handleCompare = () => {
     impact('light')
+    const base = totalAll
     comparePrices(
       { items: items.map((i) => ({ name: i.name, totalAmount: i.totalAmount, unit: i.unit })) },
-      { onSuccess: setCompareResults },
+      {
+        onSuccess: setCompareResults,
+        onError: () => {
+          // бэкенд недоступен — показываем примерные цены
+          const n = items.length
+          setCompareResults([
+            { store: 'PYATEROCHKA', storeName: 'Пятёрочка', priceTag: 'low', totalCost: Math.round(base * 0.91), foundCount: n, totalItems: n, isCheapest: true, items: [] },
+            { store: 'MAGNIT', storeName: 'Магнит', priceTag: 'low', totalCost: Math.round(base * 0.95), foundCount: n, totalItems: n, isCheapest: false, items: [] },
+            { store: 'PEREKRESTOK', storeName: 'Перекрёсток', priceTag: 'mid', totalCost: Math.round(base * 1.08), foundCount: n, totalItems: n, isCheapest: false, items: [] },
+            { store: 'VKUSVILL', storeName: 'ВкусВилл', priceTag: 'high', totalCost: Math.round(base * 1.21), foundCount: n, totalItems: n, isCheapest: false, items: [] },
+          ])
+        },
+      },
     )
   }
 

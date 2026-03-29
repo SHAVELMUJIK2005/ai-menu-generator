@@ -65,3 +65,22 @@ export interface MenuResponse {
   budgetLeft: number
   confidence: 'low' | 'medium' | 'high'
 }
+
+export interface MenuRating {
+  id: number
+  menuId: string
+  userId: string
+  stars: number
+  comment?: string
+  createdAt: string
+}
+
+export interface RateMenuRequest {
+  stars: number  // 1-5
+  comment?: string
+}
+
+export interface SubstituteMealRequest {
+  dayNumber: number
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+}

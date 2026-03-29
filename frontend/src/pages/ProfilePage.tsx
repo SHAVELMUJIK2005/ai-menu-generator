@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { RefreshCw, ChevronRight, LogOut, Star } from 'lucide-react'
+import { RefreshCw, ChevronRight, LogOut, Star, Settings } from 'lucide-react'
 import { useOnboardingStore } from '../store/onboardingStore'
 import { useProfile, useStats } from '../hooks/useProfile'
 import { useMenuHistory } from '../hooks/useMenu'
-import { useSubscription, useBuyPremium } from '../hooks/useSubscription'
+import { useSubscription } from '../hooks/useSubscription'
 import { useHaptic } from '../hooks/useTelegram'
+import { useMenuStore } from '../store/menuStore'
+import type { MenuResponse } from '../../../shared/src/types'
 
 const PROFILE_LABELS: Record<string, string> = {
   STUDENT: '🎓 Студент', SPORT: '💪 Спорт', FAMILY: '👨‍👩‍👧 Семья', SINGLE: '🧑 Один', OFFICE: '💼 Офис',
@@ -35,20 +37,45 @@ function HistorySkeleton() {
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { profileType, goal, reset } = useOnboardingStore()
+  const { profileType, goal, reset, setStep } = useOnboardingStore()
 
   const { data: profile } = useProfile()
   const { data: historyData, isLoading: historyLoading } = useMenuHistory()
-  const { data: stats } = useStats()
+  const { data: stats, isLoading: statsLoading } = useStats()
   const { data: subscription } = useSubscription()
-  const { mutate: buyPremium, isPending: buyingPremium } = useBuyPremium()
-  const { impact, success } = useHaptic()
+  const { impact } = useHaptic()
+  const { setMenu } = useMenuStore()
 
   const isPremium = subscription?.isPremium ?? profile?.isPremium ?? false
 
+  // Сырые данные истории из API
+  type RawHistoryItem = {
+    id: string
+    createdAt: string
+    budgetInput: number
+    daysCount: number
+    parsedMenu?: MenuResponse | null
+  }
+  const rawHistoryItems: RawHistoryItem[] = historyData?.items ?? []
+
   // история: берём из API или пустой массив
+  // Поля из бэкенда: createdAt, budgetInput, daysCount, parsedMenu.totalCost
   const history: Array<{ id: string; date: string; budget: number; days: number; totalCost: number }> =
-    historyData?.items ?? []
+    rawHistoryItems.map((item) => ({
+      id: item.id,
+      date: new Date(item.createdAt).toLocaleDateString('ru', { day: 'numeric', month: 'short' }),
+      budget: item.budgetInput,
+      days: item.daysCount,
+      totalCost: item.parsedMenu?.totalCost ?? 0,
+    }))
+
+  // Загрузить меню из истории в стор и перейти на страницу меню
+  const handleHistoryItemClick = (item: RawHistoryItem) => {
+    if (item.parsedMenu) {
+      setMenu(item.parsedMenu, item.id)
+    }
+    navigate('/menu')
+  }
 
   // статистика: API-данные или фоллбэк из локальной истории
   const totalMenus = stats?.totalMenus ?? history.length
@@ -87,7 +114,7 @@ export default function ProfilePage() {
 
         {/* статистика */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          {historyLoading ? (
+          {historyLoading || statsLoading ? (
             <>
               <StatSkeleton />
               <StatSkeleton />
@@ -95,10 +122,12 @@ export default function ProfilePage() {
             </>
           ) : (
             [
-              { label: 'Меню создано', value: totalMenus || '—' },
+              { label: 'Меню создано', value: totalMenus != null ? totalMenus : '—' },
               {
                 label: 'Осталось сегодня',
-                value: generationsLeft !== null ? `${generationsLeft}/${dailyLimit}` : '∞',
+                value: stats
+                  ? (generationsLeft !== null ? `${generationsLeft}/${dailyLimit}` : '∞')
+                  : '—',
               },
               { label: 'Статус', value: profile?.isPremium ? '⭐ Premium' : 'Free' },
             ].map(({ label, value }) => (
@@ -129,11 +158,11 @@ export default function ProfilePage() {
           ) : history.length === 0 ? (
             <div className="text-sm text-gray-400 text-center py-4">История пока пуста</div>
           ) : (
-            history.map((item) => (
+            history.map((item, idx) => (
               <motion.div
                 key={item.id}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/menu')}
+                onClick={() => { impact('light'); handleHistoryItemClick(rawHistoryItems[idx]) }}
                 className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
                 style={{
                   background: 'rgba(255,255,255,0.72)',
@@ -152,7 +181,10 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={(e) => { e.stopPropagation(); navigate('/generating') }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/generating', { state: { mode: 'reroll', menuId: item.id } })
+                    }}
                     className="p-2 rounded-xl"
                     style={{ background: 'rgba(76,175,80,0.1)', color: 'var(--color-primary)' }}
                   >
@@ -170,8 +202,25 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-2 mb-6">
           <motion.div
             whileTap={{ scale: 0.98 }}
+            onClick={() => { impact('light'); navigate('/settings') }}
+            className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
+            style={{
+              background: 'rgba(255,255,255,0.72)',
+              backdropFilter: 'blur(20px)',
+              border: '1.5px solid rgba(255,255,255,0.5)',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <Settings size={16} className="text-gray-400" />
+              <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Настройки</span>
+            </div>
+            <ChevronRight size={16} className="text-gray-300" />
+          </motion.div>
+          <motion.div
+            whileTap={{ scale: 0.98 }}
             onClick={() => {
-              localStorage.removeItem('onboarding_done')
+              // переходим сразу на шаг "Нелюбимые продукты" (шаг 4), не сбрасывая профиль
+              setStep(4)
               navigate('/onboarding')
             }}
             className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
@@ -181,7 +230,7 @@ export default function ProfilePage() {
               border: '1.5px solid rgba(255,255,255,0.5)',
             }}
           >
-            <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Изменить предпочтения</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Нелюбимые продукты и аллергены</span>
             <ChevronRight size={16} className="text-gray-300" />
           </motion.div>
           {isPremium ? (
@@ -208,9 +257,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <motion.div
-              whileTap={{ scale: 0.98 }}
-              onClick={() => { success() }}
-              className="p-4 rounded-2xl cursor-pointer"
+              className="p-4 rounded-2xl"
               style={{
                 background: 'linear-gradient(135deg, rgba(255,107,53,0.12) 0%, rgba(255,152,0,0.12) 100%)',
                 backdropFilter: 'blur(20px)',
@@ -236,12 +283,11 @@ export default function ProfilePage() {
               </ul>
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => { success(); buyPremium() }}
-                disabled={buyingPremium}
+                onClick={() => { impact('light'); navigate('/premium') }}
                 className="w-full py-2 rounded-xl text-sm font-semibold"
-                style={{ background: 'var(--color-accent)', color: 'white', opacity: buyingPremium ? 0.7 : 1 }}
+                style={{ background: 'var(--color-accent)', color: 'white' }}
               >
-                {buyingPremium ? 'Открываем оплату...' : 'Подписаться за 199 ⭐'}
+                Подробнее о Premium ⭐
               </motion.button>
             </motion.div>
           )}

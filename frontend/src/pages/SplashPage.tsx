@@ -10,7 +10,16 @@ export default function SplashPage() {
     // Ждём чуть дольше чтобы auth успел отработать и animate выглядел хорошо
     const timer = setTimeout(() => {
       const done = localStorage.getItem('onboarding_done')
-      navigate(done ? '/budget' : '/onboarding')
+      if (!done) { navigate('/onboarding'); return }
+
+      // если уже есть сохранённое меню — открываем его сразу
+      try {
+        const raw = localStorage.getItem('menu-store')
+        const saved = raw ? JSON.parse(raw) : null
+        if (saved?.state?.currentMenu) { navigate('/menu'); return }
+      } catch { /* ignore */ }
+
+      navigate('/budget')
     }, 2000)
     return () => clearTimeout(timer)
   }, [navigate])

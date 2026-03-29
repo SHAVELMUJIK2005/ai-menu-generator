@@ -41,13 +41,15 @@ export class ProductService {
   }
 
   /**
-   * Все продукты для промпта (исключая нежелательные)
+   * Продукты для промпта — берём не более MAX_PER_CATEGORY на категорию,
+   * сортируем по цене (дешевле = популярнее для бюджетных меню).
+   * Ограничивает размер промпта до ~2000 токенов вместо ~8000.
    */
   async getForPrompt(excludeNames: string[] = []) {
-    return this.prisma.product.findMany({
-      where: {
-        canonicalName: { notIn: excludeNames },
-      },
+    const MAX_PER_CATEGORY = 12;
+
+    const all = await this.prisma.product.findMany({
+      where: { canonicalName: { notIn: excludeNames } },
       select: {
         canonicalName: true,
         category: true,
@@ -58,7 +60,19 @@ export class ProductService {
         fatPer100g: true,
         carbsPer100g: true,
       },
-      orderBy: { category: "asc" },
+      orderBy: [{ category: "asc" }, { avgPriceRub: "asc" }],
     });
+
+    // Группируем по категории и берём топ N из каждой
+    const byCategory = new Map<string, typeof all>();
+    for (const p of all) {
+      const list = byCategory.get(p.category) ?? [];
+      if (list.length < MAX_PER_CATEGORY) {
+        list.push(p);
+        byCategory.set(p.category, list);
+      }
+    }
+
+    return [...byCategory.values()].flat();
   }
 }

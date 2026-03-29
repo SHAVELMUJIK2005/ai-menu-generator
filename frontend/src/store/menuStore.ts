@@ -5,6 +5,7 @@ import type { MenuResponse } from '../types'
 interface MenuState {
   currentMenu: MenuResponse | null
   currentMenuId: string | null
+  pendingMenuId: string | null
   budget: number
   days: 3 | 7
   likedMeals: string[]
@@ -20,6 +21,7 @@ export const useMenuStore = create<MenuState>()(
     (set) => ({
       currentMenu: null,
       currentMenuId: null,
+      pendingMenuId: null,
       budget: 3000,
       days: 3,
       likedMeals: [],

@@ -14,7 +14,7 @@ const NutritionSchema = z.object({
   carbs: z.number(),
 });
 
-const MealSchema = z.object({
+export const MealSchema = z.object({
   type: z.enum(["breakfast", "lunch", "dinner", "snack"]),
   name: z.string(),
   ingredients: z.array(IngredientSchema),
@@ -22,6 +22,7 @@ const MealSchema = z.object({
   cookingMin: z.number(),
   nutrition: NutritionSchema,
   cost: z.number(),
+  videoUrl: z.string().url().optional(), // YouTube URL, добавляется для Premium
 });
 
 const DayTotalSchema = z.object({

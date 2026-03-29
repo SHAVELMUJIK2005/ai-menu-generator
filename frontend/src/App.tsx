@@ -9,6 +9,7 @@ import GeneratingPage from './pages/GeneratingPage'
 import MenuPage from './pages/MenuPage'
 import ShoppingListPage from './pages/ShoppingListPage'
 import ProfilePage from './pages/ProfilePage'
+import FavoritesPage from './pages/FavoritesPage'
 import BottomNav from './components/BottomNav'
 import { useAuth } from './hooks/useAuth'
 import { useTelegramReady } from './hooks/useTelegram'
@@ -16,13 +17,29 @@ import { useTelegramReady } from './hooks/useTelegram'
 const queryClient = new QueryClient()
 
 // таббар показываем только на главных экранах
-const NAV_ROUTES = ['/menu', '/shopping', '/profile']
+const NAV_ROUTES = ['/menu', '/profile']
 
 function Layout() {
   const { pathname } = useLocation()
   const showNav = NAV_ROUTES.includes(pathname)
   const { isReady } = useAuth()
   const initTelegram = useTelegramReady()
+
+  // Тёмная тема по colorScheme Telegram
+  useEffect(() => {
+    const applyTheme = () => {
+      const tg = (window as Window & { Telegram?: { WebApp?: { colorScheme?: string; onEvent?: (e: string, cb: () => void) => void } } }).Telegram?.WebApp
+      const scheme = tg?.colorScheme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      document.documentElement.setAttribute('data-theme', scheme)
+    }
+    applyTheme()
+    const tg = (window as Window & { Telegram?: { WebApp?: { onEvent?: (e: string, cb: () => void) => void } } }).Telegram?.WebApp
+    tg?.onEvent?.('themeChanged', applyTheme)
+    return () => {
+      const tg2 = (window as Window & { Telegram?: { WebApp?: { offEvent?: (e: string, cb: () => void) => void } } }).Telegram?.WebApp
+      tg2?.offEvent?.('themeChanged', applyTheme)
+    }
+  }, [])
 
   // Сообщаем Telegram что приложение загружено и разворачиваем на весь экран
   useEffect(() => {
@@ -41,6 +58,7 @@ function Layout() {
         <Route path="/generating" element={<GeneratingPage />} />
         <Route path="/menu" element={<MenuPage />} />
         <Route path="/shopping" element={<ShoppingListPage />} />
+        <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
       {showNav && <BottomNav />}

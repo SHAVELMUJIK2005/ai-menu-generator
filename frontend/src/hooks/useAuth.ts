@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { authenticateDev, authenticateWithTelegram } from '../api/auth'
 import { getTelegramInitData } from './useTelegram'
 
-// Флаг: токен уже получен в этой сессии — не повторяем запрос
 let authInProgress = false
 
 export function useAuth() {
   const [isReady, setIsReady] = useState(() => !!localStorage.getItem('access_token'))
-  const [error, setError] = useState(false)
+  const [authFailed, setAuthFailed] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     if (isReady || authInProgress) return
@@ -31,18 +31,26 @@ export function useAuth() {
 
         localStorage.setItem('access_token', res.accessToken)
         localStorage.setItem('refresh_token', res.refreshToken)
+        setAuthFailed(false)
         setIsReady(true)
       } catch {
-        // Бэкенд недоступен — разрешаем работать в офлайн/мок режиме
-        setIsReady(true)
-        setError(true)
+        setAuthFailed(true)
+        // НЕ выставляем isReady=true — приложение не рендерится без токена
       } finally {
         authInProgress = false
       }
     }
 
     run()
-  }, [isReady])
+  // retryCount заставляет эффект перезапуститься после retry()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, retryCount])
 
-  return { isReady, authFailed: error }
+  const retry = () => {
+    authInProgress = false
+    setAuthFailed(false)
+    setRetryCount((c) => c + 1)
+  }
+
+  return { isReady, authFailed, retry }
 }

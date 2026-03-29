@@ -21,9 +21,26 @@ export async function getMenu(id: string): Promise<MenuResponse> {
   return data
 }
 
+interface RerollPending {
+  menuId: string
+  status: 'PENDING' | 'DONE'
+}
+
 export async function rerollMenu(id: string): Promise<MenuResponse> {
-  const { data } = await apiClient.post<MenuResponse>(`/menu/${id}/reroll`)
-  return data
+  const { data } = await apiClient.post<RerollPending>(`/menu/${id}/reroll`)
+
+  // Бэкенд вернул PENDING — поллим до готовности (макс 60 сек)
+  const targetId = data.menuId ?? id
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 2000))
+    try {
+      const menu = await getMenu(targetId)
+      if (menu.days?.length) return menu
+    } catch {
+      // ещё не готово, ждём следующей итерации
+    }
+  }
+  throw new Error('Reroll timeout')
 }
 
 export async function rateMenu(id: string, rating: number): Promise<void> {

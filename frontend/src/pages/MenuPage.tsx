@@ -317,6 +317,42 @@ function MealSheet({
 }
 
 
+function StarRating({ menuId }: { menuId: string | null }) {
+  const [selected, setSelected] = useState(0)
+  const [submitted, setSubmitted] = useState(false)
+  const { mutate: rateMenu, isPending } = useRateMenu()
+  const { impact } = useHaptic()
+
+  if (!menuId || submitted) return null
+
+  const submit = (stars: number) => {
+    impact('medium')
+    setSelected(stars)
+    rateMenu({ id: menuId, stars }, { onSuccess: () => setSubmitted(true) })
+  }
+
+  return (
+    <div className="flex items-center gap-1 justify-center py-2">
+      <span className="text-xs text-gray-400 mr-1">Оценить меню:</span>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <motion.button
+          key={s}
+          whileTap={{ scale: 0.85 }}
+          onClick={() => submit(s)}
+          disabled={isPending}
+        >
+          <Star
+            size={20}
+            fill={s <= selected ? '#FFB800' : 'none'}
+            stroke={s <= selected ? '#FFB800' : '#ddd'}
+            strokeWidth={1.5}
+          />
+        </motion.button>
+      ))}
+    </div>
+  )
+}
+
 export default function MenuPage() {
   const [activeDay, setActiveDay] = useState(0)
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
@@ -419,7 +455,7 @@ export default function MenuPage() {
 
         {/* табы дней */}
         <div className="flex gap-2 mb-6">
-          {menu.days.map((d, i) => (
+          {currentMenu.days.map((d, i) => (
             <motion.button
               key={i}
               whileTap={{ scale: 0.95 }}
@@ -530,6 +566,8 @@ export default function MenuPage() {
             <span className="text-gray-400"> · {day.dayTotal.calories} ккал · {day.dayTotal.protein}г белка</span>
           </span>
         </div>
+        <StarRating menuId={currentMenuId} />
+
         <div className="flex gap-2">
           <motion.button
             whileTap={{ scale: 0.97 }}

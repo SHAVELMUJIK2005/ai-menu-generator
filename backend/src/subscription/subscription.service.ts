@@ -1,9 +1,10 @@
 import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "../prisma/prisma.service";
 import { SubscriptionPlan } from "@prisma/client";
 
 // Цена Premium в Telegram Stars (1 Star ≈ 0.013 USD)
-const PREMIUM_PRICE_STARS = 250; // ~3.25 USD/мес
+const PREMIUM_PRICE_STARS = 199; // ~2.60 USD/мес
 const PREMIUM_DURATION_DAYS = 30;
 
 @Injectable()
@@ -106,6 +107,23 @@ export class SubscriptionService {
   }
 
   /**
+   * Крон: каждый час деактивируем все истёкшие подписки
+   */
+  @Cron("0 * * * *")
+  async deactivateAllExpired() {
+    const result = await this.prisma.user.updateMany({
+      where: {
+        isPremium: true,
+        premiumUntil: { lt: new Date() },
+      },
+      data: { isPremium: false },
+    });
+    if (result.count > 0) {
+      this.logger.log(`Деактивировано ${result.count} истёкших Premium подписок`);
+    }
+  }
+
+  /**
    * Создаём ссылку на инвойс Telegram Stars для оплаты Premium
    * userId передаём в invoice_payload — получим его обратно в successful_payment
    */
@@ -120,6 +138,7 @@ export class SubscriptionService {
         title: "Premium подписка",
         description: "30 дней Premium: безлимитная генерация меню + приоритетный AI",
         payload: userId, // вернётся в successful_payment.invoice_payload
+        provider_token: "", // для Telegram Stars всегда пустая строка
         currency: "XTR", // Telegram Stars
         prices: [{ label: "Premium 30 дней", amount: PREMIUM_PRICE_STARS }],
       }),

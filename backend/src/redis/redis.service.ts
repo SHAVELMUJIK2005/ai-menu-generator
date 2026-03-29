@@ -28,4 +28,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async del(key: string): Promise<void> {
     await this.client.del(key);
   }
+
+  /** Удалить все ключи по glob-паттерну (SCAN, не KEYS — безопасно для прода) */
+  async scanDel(pattern: string): Promise<number> {
+    let cursor = "0";
+    let deleted = 0;
+    do {
+      const [nextCursor, keys] = await this.client.scan(cursor, "MATCH", pattern, "COUNT", 100);
+      cursor = nextCursor;
+      if (keys.length) {
+        await this.client.del(...keys);
+        deleted += keys.length;
+      }
+    } while (cursor !== "0");
+    return deleted;
+  }
 }

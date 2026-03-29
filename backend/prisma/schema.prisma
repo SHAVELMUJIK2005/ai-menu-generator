@@ -47,6 +47,10 @@ enum ProductCategory {
   GROCERY
   FROZEN
   DRINKS
+  NUTS
+  SPICES
+  CANNED
+  SWEETS
   OTHER
 }
 
@@ -68,6 +72,7 @@ enum MenuStatus {
   PENDING
   DONE
   ERROR
+  FAILED
 }
 
 enum SubscriptionPlan {
@@ -98,6 +103,7 @@ model User {
 
   menus          Menu[]
   favorites      Favorite[]
+  ratings        MenuRating[]
   generationLogs GenerationLog[]
   subscription   Subscription?
 }
@@ -126,20 +132,21 @@ model Menu {
   daysCount        Int
   budgetInput      Int
   storeChain       StoreChain?
-  promptVersion    String
-  aiModel          String
-  tokensIn         Int
-  tokensOut        Int
-  costUsd          Decimal     @db.Decimal(10, 6)
-  rawResponse      Json
-  parsedMenu       Json
-  shoppingList     Json
+  promptVersion    String      @default("v1.0")
+  aiModel          String?
+  tokensIn         Int?
+  tokensOut        Int?
+  costUsd          Decimal?    @db.Decimal(10, 6)
+  rawResponse      Json?
+  parsedMenu       Json?
+  shoppingList     Json?
   nutritionSummary Json?
   status           MenuStatus  @default(PENDING)
   createdAt        DateTime    @default(now())
 
-  user      User       @relation(fields: [userId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
   favorites Favorite[]
+  ratings   MenuRating[]
 }
 
 model StorePrices {
@@ -153,6 +160,23 @@ model StorePrices {
   parsedAt   DateTime
 
   product Product @relation(fields: [productId], references: [id])
+
+  @@unique([productId, storeChain, region])
+  @@index([storeChain, region])
+}
+
+model MenuRating {
+  id        Int      @id @default(autoincrement())
+  menuId    String
+  userId    String
+  stars     Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  menu Menu @relation(fields: [menuId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, menuId])
 }
 
 model Favorite {
