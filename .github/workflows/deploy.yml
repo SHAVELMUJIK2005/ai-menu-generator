@@ -149,13 +149,14 @@ jobs:
           DOMAIN: ${{ secrets.DOMAIN }}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
           ADMIN_TELEGRAM_IDS: ${{ secrets.ADMIN_TELEGRAM_IDS }}
+          PROXY_URL: ${{ secrets.PROXY_URL }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: GITHUB_REPOSITORY,IMAGE_TAG,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,REDIS_PASSWORD,JWT_SECRET,TG_BOT_TOKEN,TG_WEBHOOK_SECRET,OPENROUTER_API_KEY,DOMAIN,FRONTEND_URL,ADMIN_TELEGRAM_IDS,GH_TOKEN,GH_ACTOR
+          envs: GITHUB_REPOSITORY,IMAGE_TAG,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,REDIS_PASSWORD,JWT_SECRET,TG_BOT_TOKEN,TG_WEBHOOK_SECRET,OPENROUTER_API_KEY,DOMAIN,FRONTEND_URL,ADMIN_TELEGRAM_IDS,PROXY_URL,GH_TOKEN,GH_ACTOR
           script: |
             set -e
             cd /opt/menu-app
@@ -177,6 +178,7 @@ jobs:
             printf "WEBHOOK_DOMAIN=%s\n" "$DOMAIN" >> .env
             printf "FRONTEND_URL=%s\n" "$FRONTEND_URL" >> .env
             printf "ADMIN_TELEGRAM_IDS=%s\n" "$ADMIN_TELEGRAM_IDS" >> .env
+            if [ -n "$PROXY_URL" ]; then printf "PROXY_URL=%s\n" "$PROXY_URL" >> .env; fi
             printf "NODE_ENV=production\n" >> .env
 
             # Логинимся в GHCR

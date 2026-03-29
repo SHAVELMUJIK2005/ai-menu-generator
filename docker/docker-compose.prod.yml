@@ -43,6 +43,7 @@ services:
       WEBHOOK_DOMAIN: ${WEBHOOK_DOMAIN}
       MINI_APP_URL: https://${WEBHOOK_DOMAIN}/tg
       FRONTEND_URL: ${FRONTEND_URL}
+      PROXY_URL: ${PROXY_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
