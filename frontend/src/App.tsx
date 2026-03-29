@@ -24,7 +24,7 @@ const NAV_ROUTES = ['/menu', '/shopping', '/favorites', '/profile']
 function Layout() {
   const { pathname } = useLocation()
   const showNav = NAV_ROUTES.includes(pathname)
-  const { isReady, authFailed, retry } = useAuth()
+  const { isReady, authFailed, authError, retry } = useAuth()
   const initTelegram = useTelegramReady()
 
   // Сообщаем Telegram что приложение загружено и разворачиваем на весь экран
@@ -42,6 +42,11 @@ function Layout() {
         <p className="text-base text-center" style={{ color: 'var(--color-text)' }}>
           Не удалось подключиться к серверу
         </p>
+        {authError && (
+          <p className="text-xs text-center font-mono px-4" style={{ color: 'var(--color-text)', opacity: 0.6 }}>
+            {authError}
+          </p>
+        )}
         <button
           onClick={retry}
           className="px-6 py-3 rounded-2xl text-white font-semibold"

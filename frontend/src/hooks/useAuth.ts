@@ -7,6 +7,7 @@ let authInProgress = false
 export function useAuth() {
   const [isReady, setIsReady] = useState(() => !!localStorage.getItem('access_token'))
   const [authFailed, setAuthFailed] = useState(false)
+  const [authError, setAuthError] = useState<string | undefined>()
   const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
@@ -33,7 +34,12 @@ export function useAuth() {
         localStorage.setItem('refresh_token', res.refreshToken)
         setAuthFailed(false)
         setIsReady(true)
-      } catch {
+      } catch (e: unknown) {
+        const msg = (e as { response?: { data?: { message?: string }; status?: number } })?.response?.data?.message
+          ?? (e as { message?: string })?.message
+          ?? 'Неизвестная ошибка'
+        const status = (e as { response?: { status?: number } })?.response?.status
+        setAuthError(`${status ? `[${status}] ` : ''}${msg} | initData: ${getTelegramInitData() ? 'есть' : 'нет'}`)
         setAuthFailed(true)
         // НЕ выставляем isReady=true — приложение не рендерится без токена
       } finally {
@@ -49,8 +55,9 @@ export function useAuth() {
   const retry = () => {
     authInProgress = false
     setAuthFailed(false)
+    setAuthError(undefined)
     setRetryCount((c) => c + 1)
   }
 
-  return { isReady, authFailed, retry }
+  return { isReady, authFailed, authError, retry }
 }
