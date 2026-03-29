@@ -7,6 +7,7 @@ let authInProgress = false
 export function useAuth() {
   const [isReady, setIsReady] = useState(() => !!localStorage.getItem('access_token'))
   const [authFailed, setAuthFailed] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     if (isReady || authInProgress) return
@@ -41,11 +42,14 @@ export function useAuth() {
     }
 
     run()
-  }, [isReady])
+  // retryCount заставляет эффект перезапуститься после retry()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, retryCount])
 
   const retry = () => {
+    authInProgress = false
     setAuthFailed(false)
-    setIsReady(false)
+    setRetryCount((c) => c + 1)
   }
 
   return { isReady, authFailed, retry }
