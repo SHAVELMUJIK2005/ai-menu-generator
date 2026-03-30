@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ErrorScreen from '../components/ErrorScreen'
 import AvocadoMascot from '../components/AvocadoMascot'
-import { useMenuJob } from '../hooks/useMenu'
+import { useGenerateMenu, useRerollMenu } from '../hooks/useMenu'
 import { useMenuStore } from '../store/menuStore'
 import { useOnboardingStore } from '../store/onboardingStore'
 
@@ -38,6 +38,7 @@ export default function GeneratingPage() {
   const navigatedRef = useRef(false)
 
   const { mutate: generateMenu } = useGenerateMenu()
+  const { mutate: rerollMenu } = useRerollMenu()
   const { setMenu, budget, days } = useMenuStore()
   const { profileType, goal, storeChain, dislikedProducts } = useOnboardingStore()
 
@@ -59,72 +60,58 @@ export default function GeneratingPage() {
     if (navigatedRef.current) return
     navigatedRef.current = true
     clearIntervals()
-    setPendingMenuId(null)
     setDone(true)
     setTimeout(() => navigate('/menu'), 900)
   }
 
-  useEffect(() => {
-    if (menuStatus === 'DONE' && menuData?.parsedMenu) {
-      setMenu(menuData.parsedMenu, menuData.id)
-      finishAndNavigate()
-    } else if (menuStatus === 'DONE' || menuStatus === 'FAILED') {
-      clearIntervals()
-      setPendingMenuId(null)
-      setError('generation')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuStatus, menuData])
-
-  useEffect(() => {
-    if (jobError) {
-      clearIntervals()
-      setPendingMenuId(null)
-      const detail = (jobError as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? (jobError as Error)?.message
-      setErrorDetail(detail)
-      const status = (jobError as { response?: { status?: number } })?.response?.status
-      setError(status === 429 ? 'limit' : 'generation')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobError])
+  const handleError = (err: unknown) => {
+    clearIntervals()
+    const detail = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      ?? (err as Error)?.message
+    setErrorDetail(detail)
+    const status = (err as { response?: { status?: number } })?.response?.status
+    setError(status === 429 ? 'limit' : 'generation')
+  }
 
   const run = () => {
     if (!navigator.onLine) { setError('network'); return }
-    setPendingMenuId(null)
     setError(null)
     navigatedRef.current = false
     startAnimations()
 
-    generateMenu(
-      {
-        budget,
-        days,
-        storeChain: storeChain ?? undefined,
-        profileType: profileType ?? 'SINGLE',
-        goal: goal ?? 'HEALTHY',
-        restrictions: [],
-        allergies: [],
-        dislikedProducts,
-      },
-      {
+    if (isRerollMode && rerollMenuId) {
+      rerollMenu(rerollMenuId, {
         onSuccess: (data) => {
-          setMenu(data, data.id)
+          setMenu(data, rerollMenuId)
           finishAndNavigate()
+        },
+        onError: handleError,
+      })
+    } else {
+      generateMenu(
+        {
+          budget,
+          days,
+          storeChain: storeChain ?? undefined,
+          profileType: profileType ?? 'SINGLE',
+          goal: goal ?? 'HEALTHY',
+          restrictions: [],
+          allergies: [],
+          dislikedProducts,
+        },
+        {
+          onSuccess: (data) => {
+            setMenu(data, data.id)
+            finishAndNavigate()
+          },
+          onError: handleError,
         },
       )
     }
   }
 
   useEffect(() => {
-    // Если pendingMenuId есть в store и статус не FAILED — WebView
-    // перезагрузился пока шла генерация, просто ждём поллинга
-    const status = menuData?.status
-    if (pendingMenuId && status !== 'FAILED' && status !== 'DONE') {
-      startAnimations()
-    } else {
-      run()
-    }
+    run()
     return clearIntervals
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

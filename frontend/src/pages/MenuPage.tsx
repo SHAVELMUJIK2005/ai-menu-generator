@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, RefreshCw, Heart, Shuffle, Bookmark, Coffee, Sun, Moon, Apple } from 'lucide-react'
+import { ShoppingCart, RefreshCw, Heart, Shuffle, Bookmark, Coffee, Sun, Moon, Apple, Star } from 'lucide-react'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
 import { useSubstituteMenu, useRateMenu, useRerollMenu } from '../hooks/useMenu'
@@ -339,7 +339,7 @@ function StarRating({ menuId }: { menuId: string | null }) {
   const submit = (stars: number) => {
     impact('medium')
     setSelected(stars)
-    rateMenu({ id: menuId, stars }, { onSuccess: () => setSubmitted(true) })
+    rateMenu({ id: menuId, rating: stars }, { onSuccess: () => setSubmitted(true) })
   }
 
   return (
