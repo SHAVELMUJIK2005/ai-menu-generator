@@ -155,7 +155,7 @@ export default function GeneratingPage() {
           animate={done ? { scale: [1, 1.2, 1] } : {}}
           transition={{ duration: 0.4 }}
         >
-          <AvocadoMascot size={72} animate expression={done ? 'excited' : 'thinking'} />
+          <AvocadoMascot size={72} animate />
         </motion.div>
       </div>
 

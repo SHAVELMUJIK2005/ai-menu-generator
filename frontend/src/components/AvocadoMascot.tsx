@@ -6,48 +6,54 @@ interface AvocadoMascotProps {
   expression?: 'happy' | 'thinking' | 'excited'
 }
 
-export default function AvocadoMascot({ size = 80, animate = true, expression = 'happy' }: AvocadoMascotProps) {
-  const eyeY = expression === 'thinking' ? 38 : 36
-  const mouthPath = expression === 'excited'
-    ? 'M 34 50 Q 40 56 46 50'
-    : expression === 'thinking'
-    ? 'M 35 50 Q 40 52 45 50'
-    : 'M 34 49 Q 40 55 46 49'
-
+export default function AvocadoMascot({ size = 80, animate = true }: AvocadoMascotProps) {
   return (
     <motion.div
       animate={animate ? { y: [0, -6, 0] } : undefined}
       transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
       style={{ width: size, height: size }}
     >
-      <svg viewBox="0 0 80 100" fill="none" xmlns="http://www.w3.org/2000/svg" width={size} height={size * 1.25}>
-        {/* тело авокадо */}
-        <ellipse cx="40" cy="58" rx="28" ry="34" fill="#4CAF50" />
-        <ellipse cx="40" cy="52" rx="22" ry="26" fill="#6DBF70" />
+      <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="appLogoGrad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#6EC97A" />
+            <stop offset="100%" stopColor="#1B5E20" />
+          </linearGradient>
+          <linearGradient id="appLogoGradInner" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+        </defs>
 
-        {/* верхняя часть (тёмно-зелёная) */}
-        <path d="M 18 45 Q 20 10 40 8 Q 60 10 62 45 Q 55 30 40 28 Q 25 30 18 45 Z" fill="#388E3C" />
+        {/* Фон — скруглённый квадрат */}
+        <rect width="80" height="80" rx="20" fill="url(#appLogoGrad)" />
 
-        {/* мякоть */}
-        <ellipse cx="40" cy="60" rx="18" ry="22" fill="#FFF176" />
+        {/* Глянцевый блик сверху */}
+        <rect width="80" height="36" rx="20" fill="url(#appLogoGradInner)" />
 
-        {/* косточка */}
-        <ellipse cx="40" cy="62" rx="8" ry="10" fill="#8D6E63" />
-        <ellipse cx="40" cy="62" rx="5" ry="7" fill="#A1887F" />
+        {/* Чаша — нижняя дуга */}
+        <path
+          d="M 15 51 Q 40 70 65 51"
+          stroke="white" strokeWidth="3.5" strokeLinecap="round" fill="none"
+        />
+        {/* Чаша — верхний край */}
+        <line x1="15" y1="51" x2="65" y2="51" stroke="white" strokeWidth="3" strokeLinecap="round" />
 
-        {/* глаза */}
-        <ellipse cx="33" cy={eyeY} rx="3.5" ry={expression === 'thinking' ? 2.5 : 3.5} fill="#1A1A2E" />
-        <ellipse cx="47" cy={eyeY} rx="3.5" ry={expression === 'thinking' ? 2.5 : 3.5} fill="#1A1A2E" />
-        {/* блик в глазах */}
-        <circle cx="34.5" cy={eyeY - 1} r="1" fill="white" />
-        <circle cx="48.5" cy={eyeY - 1} r="1" fill="white" />
+        {/* Пар — три волнистые линии */}
+        <path d="M 27 45 C 23 38 31 31 27 24"
+          stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none" opacity="0.65" />
+        <path d="M 40 43 C 36 34 44 27 40 18"
+          stroke="white" strokeWidth="2.6" strokeLinecap="round" fill="none" opacity="0.9" />
+        <path d="M 53 45 C 57 38 49 31 53 24"
+          stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none" opacity="0.65" />
 
-        {/* рот */}
-        <path d={mouthPath} stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-
-        {/* румянец */}
-        <ellipse cx="27" cy="44" rx="5" ry="3" fill="#FF6B35" opacity="0.25" />
-        <ellipse cx="53" cy="44" rx="5" ry="3" fill="#FF6B35" opacity="0.25" />
+        {/* AI-искра — 4-лучевая звезда (нижний правый угол) */}
+        <g transform="translate(63, 63)" opacity="0.8">
+          <line x1="0" y1="-5" x2="0" y2="5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+          <line x1="-5" y1="0" x2="5" y2="0" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+          <line x1="-2.8" y1="-2.8" x2="2.8" y2="2.8" stroke="white" strokeWidth="1.1" strokeLinecap="round" />
+          <line x1="2.8" y1="-2.8" x2="-2.8" y2="2.8" stroke="white" strokeWidth="1.1" strokeLinecap="round" />
+        </g>
       </svg>
     </motion.div>
   )

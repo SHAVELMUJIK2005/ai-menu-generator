@@ -36,7 +36,7 @@ export default function SplashPage() {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
       >
-        <AvocadoMascot size={100} animate expression="happy" />
+        <AvocadoMascot size={100} animate />
       </motion.div>
       <motion.h1
         initial={{ opacity: 0, y: 20 }}

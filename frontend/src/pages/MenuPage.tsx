@@ -1,18 +1,29 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, RefreshCw, Heart, Shuffle, Bookmark } from 'lucide-react'
+import { ShoppingCart, RefreshCw, Heart, Shuffle, Bookmark, Coffee, Sun, Moon, Apple } from 'lucide-react'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
 import { useSubstituteMenu, useRateMenu, useRerollMenu } from '../hooks/useMenu'
 import { useAddFavorite, useRemoveFavorite, useFavorites } from '../hooks/useFavorites'
 import type { Meal, DayMenu } from '../types'
 
-const MEAL_LABELS: Record<string, string> = {
-  breakfast: '🌅 Завтрак',
-  lunch: '☀️ Обед',
-  dinner: '🌙 Ужин',
-  snack: '🍎 Перекус',
+const MEAL_CONFIG: Record<string, { label: string; Icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }> = {
+  breakfast: { label: 'Завтрак', Icon: Coffee },
+  lunch:     { label: 'Обед',    Icon: Sun },
+  dinner:    { label: 'Ужин',    Icon: Moon },
+  snack:     { label: 'Перекус', Icon: Apple },
+}
+
+function MealTypeLabel({ type }: { type: string }) {
+  const cfg = MEAL_CONFIG[type]
+  if (!cfg) return <span className="text-xs text-gray-400">{type}</span>
+  return (
+    <span className="flex items-center gap-1 text-xs text-gray-400">
+      <cfg.Icon size={11} strokeWidth={2} />
+      {cfg.label}
+    </span>
+  )
 }
 
 // Нормы КБЖУ на день (среднее)
@@ -91,7 +102,7 @@ function MealCard({
       }}
     >
       <div className="flex justify-between items-start mb-1">
-        <span className="text-xs text-gray-400">{MEAL_LABELS[meal.type]}</span>
+        <MealTypeLabel type={meal.type} />
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
             {meal.cost} ₽
