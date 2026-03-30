@@ -19,18 +19,18 @@ const GOAL_LABELS: Record<string, string> = {
 
 function StatSkeleton() {
   return (
-    <div className="rounded-2xl p-3 text-center animate-pulse" style={{ background: 'rgba(255,255,255,0.72)', border: '1.5px solid rgba(255,255,255,0.5)' }}>
-      <div className="h-6 w-8 rounded bg-gray-200 mx-auto mb-1" />
-      <div className="h-3 w-14 rounded bg-gray-100 mx-auto" />
+    <div className="rounded-2xl p-3 text-center animate-pulse" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-card-border)' }}>
+      <div className="h-6 w-8 rounded mx-auto mb-1" style={{ background: 'var(--color-subtle-bg)' }} />
+      <div className="h-3 w-14 rounded mx-auto" style={{ background: 'var(--color-subtle-bg)' }} />
     </div>
   )
 }
 
 function HistorySkeleton() {
   return (
-    <div className="p-4 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.72)', border: '1.5px solid rgba(255,255,255,0.5)' }}>
-      <div className="h-4 w-40 rounded bg-gray-200 mb-2" />
-      <div className="h-3 w-56 rounded bg-gray-100" />
+    <div className="p-4 rounded-2xl animate-pulse" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-card-border)' }}>
+      <div className="h-4 w-40 rounded mb-2" style={{ background: 'var(--color-subtle-bg)' }} />
+      <div className="h-3 w-56 rounded" style={{ background: 'var(--color-subtle-bg)' }} />
     </div>
   )
 }
@@ -135,9 +135,9 @@ export default function ProfilePage() {
                 key={label}
                 className="rounded-2xl p-3 text-center"
                 style={{
-                  background: 'rgba(255,255,255,0.72)',
+                  background: 'var(--color-card)',
                   backdropFilter: 'blur(20px)',
-                  border: '1.5px solid rgba(255,255,255,0.5)',
+                  border: '1.5px solid var(--color-card-border)',
                 }}
               >
                 <div className="font-bold text-lg" style={{ color: 'var(--color-primary)' }}>{value}</div>
@@ -165,9 +165,9 @@ export default function ProfilePage() {
                 onClick={() => { impact('light'); handleHistoryItemClick(rawHistoryItems[idx]) }}
                 className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
                 style={{
-                  background: 'rgba(255,255,255,0.72)',
+                  background: 'var(--color-card)',
                   backdropFilter: 'blur(20px)',
-                  border: '1.5px solid rgba(255,255,255,0.5)',
+                  border: '1.5px solid var(--color-card-border)',
                 }}
               >
                 <div>
@@ -205,9 +205,9 @@ export default function ProfilePage() {
             onClick={() => { impact('light'); navigate('/settings') }}
             className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
             style={{
-              background: 'rgba(255,255,255,0.72)',
+              background: 'var(--color-card)',
               backdropFilter: 'blur(20px)',
-              border: '1.5px solid rgba(255,255,255,0.5)',
+              border: '1.5px solid var(--color-card-border)',
             }}
           >
             <div className="flex items-center gap-2">
@@ -225,9 +225,9 @@ export default function ProfilePage() {
             }}
             className="flex items-center justify-between p-4 rounded-2xl cursor-pointer"
             style={{
-              background: 'rgba(255,255,255,0.72)',
+              background: 'var(--color-card)',
               backdropFilter: 'blur(20px)',
-              border: '1.5px solid rgba(255,255,255,0.5)',
+              border: '1.5px solid var(--color-card-border)',
             }}
           >
             <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Нелюбимые продукты и аллергены</span>
