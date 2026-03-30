@@ -19,8 +19,8 @@ function MealTypeLabel({ type }: { type: string }) {
   const cfg = MEAL_CONFIG[type]
   if (!cfg) return <span className="text-xs text-gray-400">{type}</span>
   return (
-    <span className="flex items-center gap-1 text-xs text-gray-400">
-      <cfg.Icon size={11} strokeWidth={2} />
+    <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+      <cfg.Icon size={14} strokeWidth={2} />
       {cfg.label}
     </span>
   )
@@ -536,10 +536,10 @@ export default function MenuPage() {
               <p className="text-xs font-semibold text-gray-400 mb-3">Итого за {menu.days.length} дня</p>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { label: 'Ккал', value: total.calories, color: '#FF6B35' },
-                  { label: 'Белки', value: `${total.protein}г`, color: '#4CAF50' },
-                  { label: 'Жиры', value: `${total.fat}г`, color: '#FF9800' },
-                  { label: 'Углев', value: `${total.carbs}г`, color: '#2196F3' },
+                  { label: 'Ккал', value: Math.round(total.calories), color: '#FF6B35' },
+                  { label: 'Белки', value: `${Math.round(total.protein)}г`, color: '#4CAF50' },
+                  { label: 'Жиры', value: `${Math.round(total.fat)}г`, color: '#FF9800' },
+                  { label: 'Углев', value: `${Math.round(total.carbs)}г`, color: '#2196F3' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="text-center">
                     <div className="font-bold text-sm" style={{ color }}>{value}</div>

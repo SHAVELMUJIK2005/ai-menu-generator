@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Bell, Moon, ChevronRight, Info } from 'lucide-react'
 import { useHaptic } from '../hooks/useTelegram'
+import { useOnboardingStore } from '../store/onboardingStore'
 
 function Toggle({
   checked,
@@ -69,22 +70,30 @@ function SettingsRow({
 export default function SettingsPage() {
   const navigate = useNavigate()
   const { impact } = useHaptic()
+  const { setStep } = useOnboardingStore()
 
   const [notifications, setNotifications] = useState(
     () => localStorage.getItem('notif_enabled') !== 'false',
   )
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dark_mode') === 'true')
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('dark_mode')
+    if (saved !== null) return saved === 'true'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
 
   const handleToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
     impact('light')
     setter(value)
     localStorage.setItem(key, String(value))
+    if (key === 'dark_mode') {
+      document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light')
+    }
   }
 
   const card = {
-    background: 'rgba(255,255,255,0.72)',
+    background: 'var(--color-card)',
     backdropFilter: 'blur(20px) saturate(180%)',
-    border: '1.5px solid rgba(255,255,255,0.5)',
+    border: '1.5px solid var(--color-card-border)',
   }
 
   return (
@@ -132,14 +141,12 @@ export default function SettingsPage() {
           <div className="rounded-2xl overflow-hidden" style={card}>
             <SettingsRow
               border={false}
-              icon={<Moon size={16} style={{ color: '#666' }} />}
+              icon={<Moon size={16} style={{ color: 'var(--color-primary)' }} />}
               label="Тёмная тема"
-              desc="Скоро будет доступна"
               right={
                 <Toggle
                   checked={darkMode}
                   onChange={(v) => handleToggle('dark_mode', v, setDarkMode)}
-                  disabled
                 />
               }
             />
@@ -160,7 +167,7 @@ export default function SettingsPage() {
               right={<ChevronRight size={16} className="text-gray-300" />}
               onClick={() => {
                 impact('light')
-                localStorage.removeItem('onboarding_done')
+                setStep(4)
                 navigate('/onboarding')
               }}
             />
@@ -171,7 +178,7 @@ export default function SettingsPage() {
               right={<ChevronRight size={16} className="text-gray-300" />}
               onClick={() => {
                 impact('light')
-                localStorage.removeItem('onboarding_done')
+                setStep(4)
                 navigate('/onboarding')
               }}
             />

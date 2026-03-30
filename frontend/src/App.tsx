@@ -25,10 +25,15 @@ function Layout() {
   const { isReady } = useAuth()
   const initTelegram = useTelegramReady()
 
-  // Тёмная тема по colorScheme Telegram
+  // Тёмная тема: 1) ручная настройка, 2) Telegram colorScheme, 3) system
   useEffect(() => {
     const applyTheme = () => {
-      const tg = (window as Window & { Telegram?: { WebApp?: { colorScheme?: string; onEvent?: (e: string, cb: () => void) => void } } }).Telegram?.WebApp
+      const manual = localStorage.getItem('dark_mode')
+      if (manual !== null) {
+        document.documentElement.setAttribute('data-theme', manual === 'true' ? 'dark' : 'light')
+        return
+      }
+      const tg = (window as Window & { Telegram?: { WebApp?: { colorScheme?: string } } }).Telegram?.WebApp
       const scheme = tg?.colorScheme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
       document.documentElement.setAttribute('data-theme', scheme)
     }
