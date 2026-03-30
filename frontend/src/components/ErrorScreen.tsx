@@ -147,31 +147,33 @@ export default function ErrorScreen({ type = 'unknown', onRetry, message }: Erro
           className="w-full py-3.5 rounded-2xl font-semibold text-white text-sm mb-3"
           style={{ background: 'var(--color-primary)' }}
         >
-          <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-accent)' }}>
-            ⭐ Premium — безлимитные генерации
-          </p>
-          <ul className="text-xs text-gray-500 mb-3 flex flex-col gap-0.5">
-            <li>✓ Безлимитные генерации</li>
-            <li>✓ Меню на 7 дней</li>
-            <li>✓ Приоритетный AI</li>
-          </ul>
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => buyPremium()}
-            disabled={buyingPremium}
-            className="w-full py-2 rounded-xl text-sm font-semibold text-white"
-            style={{ background: 'var(--color-accent)', opacity: buyingPremium ? 0.7 : 1 }}
-          >
-            {buyingPremium ? 'Открываем оплату...' : 'Подписаться за 199 ⭐'}
-          </motion.button>
-        </div>
-      )}
+          {cfg.action}
+        </motion.button>
+
+        {type === 'limit' && (
+          <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(255,107,53,0.08)', border: '1.5px solid rgba(255,107,53,0.2)' }}>
+            <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-accent)' }}>
+              ⭐ Premium — безлимитные генерации
+            </p>
+            <ul className="text-xs text-gray-500 mb-3 flex flex-col gap-0.5">
+              <li>✓ Безлимитные генерации</li>
+              <li>✓ Меню на 7 дней</li>
+              <li>✓ Приоритетный AI</li>
+            </ul>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => buyPremium()}
+              disabled={buyingPremium}
+              className="w-full py-2 rounded-xl text-sm font-semibold text-white"
+              style={{ background: 'var(--color-accent)', opacity: buyingPremium ? 0.7 : 1 }}
+            >
+              {buyingPremium ? 'Открываем оплату...' : 'Подписаться за 199 ⭐'}
+            </motion.button>
+          </div>
+        )}
 
         {type !== 'limit' && (
-          <button
-            onClick={() => navigate('/budget')}
-            className="text-sm text-gray-400"
-          >
+          <button onClick={() => navigate('/budget')} className="text-sm text-gray-400">
             Изменить параметры
           </button>
         )}
