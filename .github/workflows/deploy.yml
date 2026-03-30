@@ -12,9 +12,11 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend to Cloudflare Pages
     runs-on: ubuntu-latest
-    if: |
+    if: >-
       github.event_name == 'workflow_dispatch' ||
-      contains(toJson(github.event.commits.*.modified + github.event.commits.*.added + github.event.commits.*.removed), 'frontend/')
+      contains(toJson(github.event.commits.*.modified), 'frontend/') ||
+      contains(toJson(github.event.commits.*.added), 'frontend/') ||
+      contains(toJson(github.event.commits.*.removed), 'frontend/')
 
     steps:
       - uses: actions/checkout@v4
