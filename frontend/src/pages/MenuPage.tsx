@@ -464,6 +464,35 @@ export default function MenuPage() {
           )}
         </div>
 
+        {/* итоги за все дни */}
+        {menu.days.length > 1 && (() => {
+          const total = menu.days.reduce(
+            (acc, d) => ({
+              calories: acc.calories + d.dayTotal.calories,
+              protein: acc.protein + d.dayTotal.protein,
+              fat: acc.fat + d.dayTotal.fat,
+              carbs: acc.carbs + d.dayTotal.carbs,
+            }),
+            { calories: 0, protein: 0, fat: 0, carbs: 0 },
+          )
+          return (
+            <div className="flex gap-4 mb-5 px-1">
+              {[
+                { label: 'Ккал', value: total.calories, color: '#FF6B35' },
+                { label: 'Белки', value: `${total.protein}г`, color: '#4CAF50' },
+                { label: 'Жиры', value: `${total.fat}г`, color: '#FF9800' },
+                { label: 'Углев', value: `${total.carbs}г`, color: '#2196F3' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex items-baseline gap-1">
+                  <span className="font-bold text-sm" style={{ color }}>{value}</span>
+                  <span className="text-xs text-gray-400">{label}</span>
+                </div>
+              ))}
+              <span className="text-xs text-gray-400 ml-auto self-center">за {menu.days.length} дня</span>
+            </div>
+          )
+        })()}
+
         {/* табы дней */}
         <div className="flex gap-2 mb-6">
           {currentMenu.days.map((d, i) => (
@@ -517,39 +546,6 @@ export default function MenuPage() {
           </motion.div>
         </AnimatePresence>
 
-        {/* итоги за все дни */}
-        {menu.days.length > 1 && (() => {
-          const total = menu.days.reduce(
-            (acc, d) => ({
-              calories: acc.calories + d.dayTotal.calories,
-              protein: acc.protein + d.dayTotal.protein,
-              fat: acc.fat + d.dayTotal.fat,
-              carbs: acc.carbs + d.dayTotal.carbs,
-            }),
-            { calories: 0, protein: 0, fat: 0, carbs: 0 },
-          )
-          return (
-            <div
-              className="mt-4 p-4 rounded-2xl"
-              style={{ background: 'var(--color-card)', backdropFilter: 'blur(20px)', border: `1.5px solid var(--color-card-border)` }}
-            >
-              <p className="text-xs font-semibold text-gray-400 mb-3">Итого за {menu.days.length} дня</p>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { label: 'Ккал', value: Math.round(total.calories), color: '#FF6B35' },
-                  { label: 'Белки', value: `${Math.round(total.protein)}г`, color: '#4CAF50' },
-                  { label: 'Жиры', value: `${Math.round(total.fat)}г`, color: '#FF9800' },
-                  { label: 'Углев', value: `${Math.round(total.carbs)}г`, color: '#2196F3' },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="text-center">
-                    <div className="font-bold text-sm" style={{ color }}>{value}</div>
-                    <div className="text-xs text-gray-400">{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })()}
       </div>
 
       {/* нижняя панель с КБЖУ дня */}
