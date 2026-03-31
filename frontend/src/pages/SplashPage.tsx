@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import AvocadoMascot from '../components/AvocadoMascot'
+import VortexLogo from '../components/VortexLogo'
 
 export default function SplashPage() {
   const navigate = useNavigate()
@@ -36,7 +36,7 @@ export default function SplashPage() {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
       >
-        <AvocadoMascot size={100} animate />
+        <VortexLogo size={100} animate />
       </motion.div>
       <motion.h1
         initial={{ opacity: 0, y: 20 }}
