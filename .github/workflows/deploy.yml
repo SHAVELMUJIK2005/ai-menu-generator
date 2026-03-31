@@ -99,6 +99,15 @@ jobs:
           target: "/opt/menu-app/frontend/"
           strip_components: 2
 
+      - name: Copy backend source to VPS (fallback build)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "backend"
+          target: "/opt/menu-app/build/"
+
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -153,8 +162,28 @@ jobs:
             # Удаляем override файл если есть (он был для ручного деплоя)
             rm -f docker-compose.override.yml docker-compose.nginx-temp.yml
 
-            # Rolling update backend
-            docker compose -f docker-compose.prod.yml pull backend
+            # Rolling update backend: сначала тянем образ из GHCR,
+            # при временных сетевых сбоях делаем несколько попыток,
+            # затем fallback на локальную сборку на VPS.
+            PULL_OK=0
+            for attempt in 1 2 3; do
+              echo "Pulling backend image from GHCR (attempt ${attempt}/3)..."
+              if docker compose -f docker-compose.prod.yml pull backend; then
+                PULL_OK=1
+                break
+              fi
+              echo "Pull failed (attempt ${attempt}/3), waiting 10s before retry..."
+              sleep 10
+            done
+
+            if [ "$PULL_OK" != "1" ]; then
+              echo "GHCR pull failed, building backend image locally from /opt/menu-app/build/backend"
+              docker build \
+                -t ghcr.io/${GITHUB_REPOSITORY}/backend:${IMAGE_TAG} \
+                -t ghcr.io/${GITHUB_REPOSITORY}/backend:latest \
+                /opt/menu-app/build/backend
+            fi
+
             docker compose -f docker-compose.prod.yml up -d --no-deps backend
 
             # Ждём пока backend поднимется (проверяем health endpoint)
