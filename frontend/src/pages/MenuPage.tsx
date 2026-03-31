@@ -478,10 +478,10 @@ export default function MenuPage() {
           return (
             <div className="flex gap-4 mb-5 px-1">
               {[
-                { label: 'Ккал', value: total.calories, color: '#FF6B35' },
-                { label: 'Белки', value: `${total.protein}г`, color: '#4CAF50' },
-                { label: 'Жиры', value: `${total.fat}г`, color: '#FF9800' },
-                { label: 'Углев', value: `${total.carbs}г`, color: '#2196F3' },
+                { label: 'Ккал', value: Math.round(total.calories), color: '#FF6B35' },
+                { label: 'Белки', value: `${Math.round(total.protein)}г`, color: '#4CAF50' },
+                { label: 'Жиры', value: `${Math.round(total.fat)}г`, color: '#FF9800' },
+                { label: 'Углев', value: `${Math.round(total.carbs)}г`, color: '#2196F3' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="flex items-baseline gap-1">
                   <span className="font-bold text-sm" style={{ color }}>{value}</span>
