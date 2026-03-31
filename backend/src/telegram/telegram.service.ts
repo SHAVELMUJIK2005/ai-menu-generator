@@ -88,6 +88,34 @@ export class TelegramService implements OnModuleInit {
       });
     });
 
+    // Команда /premium <telegramId> — тоггл Premium (только для администраторов)
+    this.bot.command("premium", async (ctx: Context) => {
+      const adminIds = new Set(
+        (process.env.ADMIN_TELEGRAM_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+      );
+
+      const callerId = String(ctx.from?.id);
+      if (!adminIds.has(callerId)) {
+        return ctx.reply("⛔ Нет доступа");
+      }
+
+      const text = ctx.message && "text" in ctx.message ? ctx.message.text : "";
+      const targetId = text.split(" ")[1]?.trim();
+
+      if (!targetId || !/^\d+$/.test(targetId)) {
+        return ctx.reply("Использование: /premium <telegramId>\nПример: /premium 123456789");
+      }
+
+      try {
+        const result = await this.subscriptionService.togglePremiumByTelegramId(targetId);
+        const status = result.isPremium ? "✅ Premium включён" : "❌ Premium отключён";
+        return ctx.reply(`${status}\nПользователь: ${result.name}\nTelegram ID: ${targetId}`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "неизвестная ошибка";
+        return ctx.reply(`⚠️ Ошибка: ${msg}`);
+      }
+    });
+
     // Подтверждение платежа (обязательно в течение 10 сек)
     this.bot.on("pre_checkout_query", async (ctx) => {
       await ctx.answerPreCheckoutQuery(true);

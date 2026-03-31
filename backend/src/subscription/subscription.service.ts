@@ -162,4 +162,62 @@ export class SubscriptionService {
     }
     return this.activatePremium(userId, "dev-test", "dev");
   }
+
+  /**
+   * Тоггл Premium по Telegram ID — для команды /premium в боте (только для администраторов)
+   */
+  async togglePremiumByTelegramId(telegramId: string): Promise<{
+    isPremium: boolean;
+    userId: string;
+    name: string;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { telegramId: BigInt(telegramId) },
+      select: { id: true, isPremium: true, username: true, displayName: true },
+    });
+
+    if (!user) throw new HttpException("Пользователь не найден в БД", HttpStatus.NOT_FOUND);
+
+    const newStatus = !user.isPremium;
+
+    if (newStatus) {
+      // Даём Premium без срока истечения (100 лет)
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 100);
+
+      await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id: user.id },
+          data: { isPremium: true, premiumUntil: expiresAt },
+        }),
+        this.prisma.subscription.upsert({
+          where: { userId: user.id },
+          create: {
+            userId: user.id,
+            plan: SubscriptionPlan.PREMIUM,
+            startedAt: new Date(),
+            expiresAt,
+            paymentProvider: "admin",
+            paymentId: `admin_grant_${Date.now()}`,
+          },
+          update: {
+            plan: SubscriptionPlan.PREMIUM,
+            startedAt: new Date(),
+            expiresAt,
+            paymentProvider: "admin",
+            paymentId: `admin_grant_${Date.now()}`,
+          },
+        }),
+      ]);
+    } else {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { isPremium: false, premiumUntil: null },
+      });
+    }
+
+    const name = user.username ? `@${user.username}` : (user.displayName ?? user.id);
+    this.logger.log(`Admin toggle Premium: tgid=${telegramId} → isPremium=${newStatus}`);
+    return { isPremium: newStatus, userId: user.id, name };
+  }
 }
