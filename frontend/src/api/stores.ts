@@ -5,11 +5,13 @@ export interface StoreInfo {
   name: string
   priceTag: string
   multiplier: number
+  iconUrl?: string
 }
 
 export interface StorePriceComparison {
   store: string
   storeName: string
+  storeIcon?: string
   priceTag: string
   totalCost: number
   foundCount: number

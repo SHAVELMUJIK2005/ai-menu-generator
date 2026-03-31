@@ -52,6 +52,7 @@ export class ProductService {
       where: { canonicalName: { notIn: excludeNames } },
       select: {
         canonicalName: true,
+        aliases: true,
         category: true,
         unit: true,
         avgPriceRub: true,

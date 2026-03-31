@@ -2,13 +2,14 @@ import { motion } from 'framer-motion'
 import LiquidCard from '../../components/LiquidCard'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import { useHaptic } from '../../hooks/useTelegram'
+import { STORE_ICON_BY_CHAIN } from '../../constants/storeMeta'
 
 const stores = [
   { id: 'PYATEROCHKA', label: 'Пятёрочка', emoji: '🟡', priceTag: '₽', desc: 'Бюджетно · точные цены' },
-  { id: 'MAGNIT',      label: 'Магнит',     emoji: '🔴', priceTag: '₽', desc: 'Бюджетно · точные цены' },
+  { id: 'MAGNIT',      label: 'Магнит', emoji: '🔴', priceTag: '₽', desc: 'Бюджетно · точные цены' },
   { id: 'PEREKRESTOK', label: 'Перекрёсток', emoji: '🟢', priceTag: '₽₽', desc: 'Средний ценовой сегмент' },
-  { id: 'LENTA',       label: 'Лента',      emoji: '🔵', priceTag: '₽₽', desc: 'Гипермаркет · широкий выбор' },
-  { id: 'VKUSVILL',    label: 'ВкусВилл',   emoji: '🟩', priceTag: '₽₽₽', desc: 'Эко-продукты · органика' },
+  { id: 'LENTA',       label: 'Лента', emoji: '🔵', priceTag: '₽₽', desc: 'Гипермаркет · широкий выбор' },
+  { id: 'VKUSVILL',    label: 'ВкусВилл', emoji: '🟩', priceTag: '₽₽₽', desc: 'Эко-продукты · органика' },
 ]
 
 export default function StoreSelectPage() {
@@ -54,10 +55,17 @@ export default function StoreSelectPage() {
               selected={storeChain === id}
               className="flex items-center gap-4"
             >
-              <span className="text-2xl">{emoji}</span>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: 'rgba(255,255,255,0.72)' }}>
+                <img
+                  src={STORE_ICON_BY_CHAIN[id]}
+                  alt={label}
+                  className="w-6 h-6 object-contain"
+                  loading="lazy"
+                />
+              </div>
               <div className="flex-1">
                 <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{label}</div>
-                <div className="text-xs text-gray-400">{desc}</div>
+                <div className="text-xs text-gray-400">{emoji} {desc}</div>
               </div>
               <span
                 className="text-xs font-bold px-2 py-0.5 rounded-lg"

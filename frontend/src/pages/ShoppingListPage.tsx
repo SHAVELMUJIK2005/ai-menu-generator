@@ -7,6 +7,7 @@ import { useHaptic } from '../hooks/useTelegram'
 import { useComparePrices } from '../hooks/useStores'
 import type { ShoppingItem } from '../types'
 import type { StorePriceComparison } from '../api/stores'
+import { STORE_ICON_BY_CHAIN } from '../constants/storeMeta'
 
 // Клиентская категоризация по ключевым словам
 const CATEGORIES: Array<{ label: string; emoji: string; keywords: string[] }> = [
@@ -65,10 +66,19 @@ function PriceCompareSheet({
       <div className="flex flex-col gap-3">
         {results.map((r) => {
           const pct = Math.round((r.totalCost / max) * 100)
+          const storeIcon = r.storeIcon ?? STORE_ICON_BY_CHAIN[r.store]
           return (
             <div key={r.store}>
               <div className="flex justify-between items-center mb-1">
                 <div className="flex items-center gap-1.5">
+                  {storeIcon && (
+                    <img
+                      src={storeIcon}
+                      alt={r.storeName}
+                      className="w-4 h-4 object-contain"
+                      loading="lazy"
+                    />
+                  )}
                   <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{r.storeName}</span>
                   {r.isCheapest && (
                     <span
@@ -116,7 +126,11 @@ export default function ShoppingListPage() {
     impact('light')
     setChecked((prev) => {
       const next = new Set(prev)
-      next.has(name) ? next.delete(name) : next.add(name)
+      if (next.has(name)) {
+        next.delete(name)
+      } else {
+        next.add(name)
+      }
       return next
     })
   }
@@ -142,10 +156,11 @@ export default function ShoppingListPage() {
           // бэкенд недоступен — показываем примерные цены
           const n = items.length
           setCompareResults([
-            { store: 'PYATEROCHKA', storeName: 'Пятёрочка', priceTag: 'low', totalCost: Math.round(base * 0.91), foundCount: n, totalItems: n, isCheapest: true, items: [] },
-            { store: 'MAGNIT', storeName: 'Магнит', priceTag: 'low', totalCost: Math.round(base * 0.95), foundCount: n, totalItems: n, isCheapest: false, items: [] },
-            { store: 'PEREKRESTOK', storeName: 'Перекрёсток', priceTag: 'mid', totalCost: Math.round(base * 1.08), foundCount: n, totalItems: n, isCheapest: false, items: [] },
-            { store: 'VKUSVILL', storeName: 'ВкусВилл', priceTag: 'high', totalCost: Math.round(base * 1.21), foundCount: n, totalItems: n, isCheapest: false, items: [] },
+            { store: 'PYATEROCHKA', storeName: 'Пятёрочка', storeIcon: STORE_ICON_BY_CHAIN.PYATEROCHKA, priceTag: 'low', totalCost: Math.round(base * 0.91), foundCount: n, totalItems: n, isCheapest: true, items: [] },
+            { store: 'MAGNIT', storeName: 'Магнит', storeIcon: STORE_ICON_BY_CHAIN.MAGNIT, priceTag: 'low', totalCost: Math.round(base * 0.95), foundCount: n, totalItems: n, isCheapest: false, items: [] },
+            { store: 'PEREKRESTOK', storeName: 'Перекрёсток', storeIcon: STORE_ICON_BY_CHAIN.PEREKRESTOK, priceTag: 'mid', totalCost: Math.round(base * 1.08), foundCount: n, totalItems: n, isCheapest: false, items: [] },
+            { store: 'LENTA', storeName: 'Лента', storeIcon: STORE_ICON_BY_CHAIN.LENTA, priceTag: 'mid', totalCost: Math.round(base * 1.02), foundCount: n, totalItems: n, isCheapest: false, items: [] },
+            { store: 'VKUSVILL', storeName: 'ВкусВилл', storeIcon: STORE_ICON_BY_CHAIN.VKUSVILL, priceTag: 'high', totalCost: Math.round(base * 1.21), foundCount: n, totalItems: n, isCheapest: false, items: [] },
           ])
         },
       },

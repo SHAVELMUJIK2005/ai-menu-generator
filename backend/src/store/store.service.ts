@@ -20,6 +20,14 @@ export const STORE_LABELS: Record<StoreChain, string> = {
   VKUSVILL:    "ВкусВилл",
 };
 
+export const STORE_ICONS: Record<StoreChain, string> = {
+  PYATEROCHKA: "https://www.5ka.ru/favicon.ico",
+  MAGNIT: "https://magnit.ru/favicon.ico",
+  LENTA: "https://lenta.com/favicon.ico",
+  PEREKRESTOK: "https://www.perekrestok.ru/favicon.ico",
+  VKUSVILL: "https://vkusvill.ru/favicon.ico",
+};
+
 @Injectable()
 export class StoreService {
   constructor(private readonly prisma: PrismaService) {}
@@ -31,7 +39,7 @@ export class StoreService {
     return Object.entries(STORE_LABELS).map(([chain, name]) => {
       const multiplier = STORE_MULTIPLIERS[chain as StoreChain];
       const priceTag = multiplier <= 0.90 ? "₽" : multiplier <= 1.00 ? "₽₽" : multiplier <= 1.15 ? "₽₽₽" : "₽₽₽₽";
-      return { chain, name, priceTag, multiplier };
+      return { chain, name, priceTag, multiplier, iconUrl: STORE_ICONS[chain as StoreChain] };
     });
   }
 
@@ -114,6 +122,7 @@ export class StoreService {
       return {
         store,
         storeName: STORE_LABELS[store],
+        storeIcon: STORE_ICONS[store],
         priceTag: this.getStores().find((s) => s.chain === store)?.priceTag ?? "₽₽",
         totalCost,
         foundCount,

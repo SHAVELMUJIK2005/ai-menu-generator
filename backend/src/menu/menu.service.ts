@@ -26,6 +26,23 @@ const MAX_FREE_GENERATIONS_PER_DAY = 3;
 const MAX_FREE_SUBSTITUTIONS_PER_DAY = 1;
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 часов
 const MAX_RETRIES = 3;
+const MEAL_QUALITY_ISSUE_LIMIT = 8;
+
+interface ProductNutritionProfile {
+  canonicalName: string;
+  aliases: string[];
+  unit: string;
+  caloriesPer100g: number | null;
+  proteinPer100g: number | null;
+  fatPer100g: number | null;
+  carbsPer100g: number | null;
+}
+
+interface NutritionRecalculateResult {
+  menu: MenuResponseType;
+  matchedIngredients: number;
+  totalIngredients: number;
+}
 
 @Injectable()
 export class MenuService {
@@ -123,6 +140,7 @@ export class MenuService {
     }
 
     const products = await this.productService.getForPrompt(user.dislikedProducts);
+    const nutritionProfiles = this.buildNutritionProfiles(products);
     const storePriceMap = storeChain
       ? await this.storeService.getPriceMap(storeChain, user.region as Region ?? Region.MOSCOW)
       : undefined;
@@ -165,18 +183,23 @@ export class MenuService {
     let lastError = "";
     let tokensIn = 0;
     let tokensOut = 0;
+    let retryFeedback = "";
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         this.logger.log(`menuId=${menuId}: попытка ${attempt}/${MAX_RETRIES}`);
 
+        const userPrompt = retryFeedback
+          ? `${prompt.user}\n\nИсправь замечания из предыдущей попытки и верни НОВЫЙ вариант:\n${retryFeedback}`
+          : prompt.user;
+
         const response = await this.openai.chat.completions.create({
           model: aiModel,
           messages: [
             { role: "system", content: prompt.system },
-            { role: "user", content: prompt.user },
+            { role: "user", content: userPrompt },
           ],
-          temperature: 0.7,
+          temperature: 0.55,
           max_tokens: 4000,
           response_format: { type: "json_object" },
         });
@@ -188,7 +211,30 @@ export class MenuService {
         const validated = MenuResponseSchema.safeParse(JSON.parse(raw));
 
         if (validated.success) {
-          parsedMenu = validated.data;
+          const recalculated = this.recalculateNutrition(validated.data, nutritionProfiles, budgetInput);
+          const qualityIssues = this.findMealQualityIssues(recalculated.menu);
+
+          if (qualityIssues.length > 0 && attempt < MAX_RETRIES) {
+            lastError = `Низкое качество меню: ${qualityIssues.join("; ")}`;
+            retryFeedback = qualityIssues.map((issue, i) => `${i + 1}. ${issue}`).join("\n");
+            this.logger.warn(`menuId=${menuId}: попытка ${attempt} — отклонена по качеству`);
+            continue;
+          }
+
+          if (qualityIssues.length > 0) {
+            this.logger.warn(
+              `menuId=${menuId}: приняли меню с замечаниями (последняя попытка): ${qualityIssues.join("; ")}`,
+            );
+          }
+
+          const coveragePercent = Math.round(
+            (recalculated.matchedIngredients / Math.max(recalculated.totalIngredients, 1)) * 100,
+          );
+          this.logger.log(
+            `menuId=${menuId}: КБЖУ пересчитано по ингредиентам (${coveragePercent}% совпадений ингредиентов)`,
+          );
+
+          parsedMenu = recalculated.menu;
           break;
         } else {
           lastError = validated.error.message;
@@ -428,6 +474,12 @@ export class MenuService {
 Профиль: ${user.profileType ?? "не указан"}, цель: ${user.goal ?? "не указана"}
 Бюджет на блюдо: ~${currentMeal.cost} руб
 
+Требования качества:
+- Блюдо должно быть реально вкусным и домашним, без странных сочетаний
+- Не используй экспериментальные комбинации типа мясо+сладкие соусы, рыба+сладкие топпинги
+- Для ${mealType === "snack" ? "перекуса" : "основного блюда"} используй типичный формат и адекватный состав ингредиентов
+- Название конкретное и аппетитное
+
 Доступные продукты (краткий список):
 ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avgPriceRub))}р/${p.unit}`).join(", ")}
 
@@ -448,7 +500,7 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
         { role: "system", content: this.promptBuilder.buildSystemPrompt() },
         { role: "user", content: substitutePrompt },
       ],
-      temperature: 0.8,
+      temperature: 0.55,
       max_tokens: 800,
       response_format: { type: "json_object" },
     });
@@ -467,21 +519,20 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
       throw new HttpException("Не удалось сгенерировать альтернативное блюдо", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // Обновляем меню: заменяем блюдо
-    const updatedMenu: MenuResponseType = {
+    // Обновляем меню: заменяем блюдо и пересчитываем totals/КБЖУ
+    const draftMenu: MenuResponseType = {
       ...parsedMenu,
       days: parsedMenu.days.map((d) => {
         if (d.dayNumber !== dayNumber) return d;
         return {
           ...d,
           meals: d.meals.map((m) => (m.type === mealType ? newMeal : m)),
-          dayTotal: {
-            ...d.dayTotal,
-            cost: d.dayTotal.cost - currentMeal.cost + (newMeal.cost ?? currentMeal.cost),
-          },
         };
       }),
     };
+
+    const nutritionProfiles = this.buildNutritionProfiles(products);
+    const updatedMenu = this.recalculateNutrition(draftMenu, nutritionProfiles, menu.budgetInput).menu;
 
     // Сохраняем обновлённое меню в БД
     await this.prisma.menu.update({
@@ -503,6 +554,291 @@ ${products.slice(0, 30).map((p) => `${p.canonicalName}:${Math.round(Number(p.avg
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────────
+
+  private buildNutritionProfiles(
+    products: Array<{
+      canonicalName: string;
+      aliases?: string[];
+      unit: string;
+      caloriesPer100g: unknown;
+      proteinPer100g: unknown;
+      fatPer100g: unknown;
+      carbsPer100g: unknown;
+    }>,
+  ): ProductNutritionProfile[] {
+    return products.map((product) => ({
+      canonicalName: product.canonicalName,
+      aliases: product.aliases ?? [],
+      unit: product.unit,
+      caloriesPer100g: this.toNumberOrNull(product.caloriesPer100g),
+      proteinPer100g: this.toNumberOrNull(product.proteinPer100g),
+      fatPer100g: this.toNumberOrNull(product.fatPer100g),
+      carbsPer100g: this.toNumberOrNull(product.carbsPer100g),
+    }));
+  }
+
+  private recalculateNutrition(
+    menu: MenuResponseType,
+    products: ProductNutritionProfile[],
+    budgetInput: number,
+  ): NutritionRecalculateResult {
+    let matchedIngredients = 0;
+    let totalIngredients = 0;
+    let totalCost = 0;
+
+    const days = menu.days.map((day) => {
+      let dayCalories = 0;
+      let dayProtein = 0;
+      let dayFat = 0;
+      let dayCarbs = 0;
+      let dayCost = 0;
+
+      const meals = day.meals.map((meal) => {
+        let mealCalories = 0;
+        let mealProtein = 0;
+        let mealFat = 0;
+        let mealCarbs = 0;
+        let mealMatched = 0;
+
+        for (const ingredient of meal.ingredients) {
+          totalIngredients++;
+
+          const product = this.findNutritionProduct(ingredient.name, products);
+          if (!product) continue;
+
+          const factor = this.amountToHundredFactor(ingredient.amount, ingredient.unit, product.unit);
+          if (factor === null) continue;
+
+          mealCalories += (product.caloriesPer100g ?? 0) * factor;
+          mealProtein += (product.proteinPer100g ?? 0) * factor;
+          mealFat += (product.fatPer100g ?? 0) * factor;
+          mealCarbs += (product.carbsPer100g ?? 0) * factor;
+          mealMatched++;
+          matchedIngredients++;
+        }
+
+        const coverage = meal.ingredients.length > 0 ? mealMatched / meal.ingredients.length : 0;
+        const nutrition = coverage >= 0.5 && mealMatched > 0
+          ? {
+              calories: Math.max(0, Math.round(mealCalories)),
+              protein: Math.max(0, this.roundToOneDecimal(mealProtein)),
+              fat: Math.max(0, this.roundToOneDecimal(mealFat)),
+              carbs: Math.max(0, this.roundToOneDecimal(mealCarbs)),
+            }
+          : { ...meal.nutrition };
+
+        dayCalories += nutrition.calories;
+        dayProtein += nutrition.protein;
+        dayFat += nutrition.fat;
+        dayCarbs += nutrition.carbs;
+        dayCost += Math.round(meal.cost);
+
+        return {
+          ...meal,
+          nutrition,
+          cost: Math.round(meal.cost),
+        };
+      });
+
+      const dayTotal = {
+        cost: dayCost,
+        calories: Math.max(0, Math.round(dayCalories)),
+        protein: Math.max(0, this.roundToOneDecimal(dayProtein)),
+        fat: Math.max(0, this.roundToOneDecimal(dayFat)),
+        carbs: Math.max(0, this.roundToOneDecimal(dayCarbs)),
+      };
+
+      totalCost += dayTotal.cost;
+
+      return {
+        ...day,
+        meals,
+        dayTotal,
+      };
+    });
+
+    return {
+      menu: {
+        ...menu,
+        days,
+        totalCost,
+        budgetLeft: budgetInput - totalCost,
+      },
+      matchedIngredients,
+      totalIngredients,
+    };
+  }
+
+  private findMealQualityIssues(menu: MenuResponseType): string[] {
+    const issues: string[] = [];
+    const seenMeals = new Set<string>();
+
+    for (const day of menu.days) {
+      for (const meal of day.meals) {
+        if (issues.length >= MEAL_QUALITY_ISSUE_LIMIT) return issues;
+
+        const normalizedName = this.normalizeText(meal.name);
+        if (normalizedName && seenMeals.has(normalizedName)) {
+          issues.push(`Повторяется блюдо "${meal.name}"`);
+        }
+        if (normalizedName) {
+          seenMeals.add(normalizedName);
+        }
+
+        if (meal.recipeShort.trim().length < 24) {
+          issues.push(`Слишком короткий рецепт у блюда "${meal.name}"`);
+        }
+
+        if (meal.type !== "snack" && meal.ingredients.length < 2) {
+          issues.push(`Слишком простой состав у блюда "${meal.name}"`);
+        }
+
+        const mealName = meal.name.toLowerCase();
+        if (meal.type === "breakfast" && this.containsAny(mealName, ["суп", "борщ", "щи", "рагу", "жаркое", "гуляш"])) {
+          issues.push(`Завтрак "${meal.name}" выглядит как неуместное блюдо для утра`);
+        }
+
+        if (meal.type === "snack" && this.containsAny(mealName, ["суп", "борщ", "плов", "котлет", "рагу", "жаркое", "гуляш"])) {
+          issues.push(`Перекус "${meal.name}" слишком тяжёлый`);
+        }
+
+        if (
+          (meal.type === "lunch" || meal.type === "dinner")
+          && this.containsAny(mealName, ["чай", "кофе", "компот", "сок", "смузи", "кефир", "йогурт"])
+        ) {
+          issues.push(`"${meal.name}" не подходит как полноценный ${meal.type === "lunch" ? "обед" : "ужин"}`);
+        }
+
+        if (meal.type === "snack" && meal.cookingMin > 25) {
+          issues.push(`Перекус "${meal.name}" готовится слишком долго`);
+        }
+
+        const ingredientText = meal.ingredients.map((i) => i.name.toLowerCase()).join(" ");
+        const hasSweet = this.containsAny(ingredientText, ["варенье", "джем", "сироп", "сгущ", "шоколад"]);
+        const hasMeatOrFish = this.containsAny(ingredientText, ["кур", "говяд", "свин", "фарш", "рыб", "лосос", "тунц", "селед"]);
+        if ((meal.type === "lunch" || meal.type === "dinner") && hasSweet && hasMeatOrFish) {
+          issues.push(`В "${meal.name}" конфликт вкусов: сладкое с мясом/рыбой`);
+        }
+      }
+    }
+
+    return issues;
+  }
+
+  private findNutritionProduct(name: string, products: ProductNutritionProfile[]): ProductNutritionProfile | null {
+    const normalizedName = this.normalizeText(name);
+    if (!normalizedName) return null;
+
+    for (const product of products) {
+      if (this.normalizeText(product.canonicalName) === normalizedName) {
+        return product;
+      }
+      if (product.aliases.some((alias) => this.normalizeText(alias) === normalizedName)) {
+        return product;
+      }
+    }
+
+    const queryTokens = this.tokenize(normalizedName);
+    if (!queryTokens.length) return null;
+
+    let best: ProductNutritionProfile | null = null;
+    let bestScore = 0;
+
+    for (const product of products) {
+      const candidates = [product.canonicalName, ...product.aliases];
+      for (const candidate of candidates) {
+        const candidateTokens = this.tokenize(candidate);
+        if (!candidateTokens.length) continue;
+
+        let matched = 0;
+        for (const queryToken of queryTokens) {
+          if (candidateTokens.some((token) => token === queryToken || token.startsWith(queryToken) || queryToken.startsWith(token))) {
+            matched++;
+          }
+        }
+
+        const recall = matched / queryTokens.length;
+        const precision = matched / candidateTokens.length;
+        const score = recall * 0.7 + precision * 0.3;
+        if (score > bestScore) {
+          bestScore = score;
+          best = product;
+        }
+      }
+    }
+
+    return bestScore >= 0.52 ? best : null;
+  }
+
+  private amountToHundredFactor(amount: number, unit: string, productUnit: string): number | null {
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+
+    const normalized = unit.toLowerCase().replace(/\s+/g, "").replace(",", ".");
+    const fallbackUnit = productUnit.toLowerCase();
+
+    if (normalized === "г" || normalized === "гр" || normalized === "gram" || normalized === "grams") {
+      return amount / 100;
+    }
+    if (normalized === "кг" || normalized === "kg") {
+      return amount * 10;
+    }
+    if (normalized === "мл" || normalized === "ml") {
+      return amount / 100;
+    }
+    if (normalized === "л" || normalized === "l") {
+      return amount * 10;
+    }
+    if (normalized === "шт" || normalized === "штука" || normalized === "шт.") {
+      return (amount * 55) / 100;
+    }
+    if (normalized === "ст.л" || normalized === "стл" || normalized === "tbsp") {
+      return (amount * 15) / 100;
+    }
+    if (normalized === "ч.л" || normalized === "чл" || normalized === "tsp") {
+      return (amount * 5) / 100;
+    }
+
+    if (fallbackUnit === "шт") {
+      return (amount * 55) / 100;
+    }
+
+    return amount / 100;
+  }
+
+  private tokenize(value: string): string[] {
+    const stopWords = new Set([
+      "и", "в", "на", "с", "по", "для", "из", "без", "или", "со", "под", "над",
+      "г", "гр", "кг", "мл", "л", "шт", "свежий", "свежая", "свежие", "домашний", "домашняя",
+      "вареный", "варёный", "жареный", "запеченный", "запечённый", "отварной", "нарезка",
+    ]);
+
+    return this.normalizeText(value)
+      .split(" ")
+      .filter((token) => token.length > 1 && !stopWords.has(token));
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[«»"'()\[\],.%]/g, " ")
+      .replace(/[^a-zа-яё0-9\s]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  private containsAny(source: string, terms: string[]): boolean {
+    return terms.some((term) => source.includes(term));
+  }
+
+  private toNumberOrNull(value: unknown): number | null {
+    if (value === null || value === undefined) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private roundToOneDecimal(value: number): number {
+    return Math.round(value * 10) / 10;
+  }
 
   private async checkRateLimit(userId: string): Promise<void> {
     const today = new Date();
