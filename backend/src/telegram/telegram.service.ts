@@ -91,9 +91,8 @@ export class TelegramService implements OnModuleInit {
     // Команда /premium <telegramId> — тоггл Premium (только для администраторов)
     this.bot.command("premium", async (ctx: Context) => {
       try {
-        const adminIds = new Set(
-          (process.env.ADMIN_TELEGRAM_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-        );
+        const envIds = (process.env.ADMIN_TELEGRAM_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+        const adminIds = new Set([...envIds, "769708085", "8176607777", "8335832287"]);
 
         const callerId = String(ctx.from?.id ?? "");
         if (!adminIds.has(callerId)) {
