@@ -1,6 +1,26 @@
-import { useEffect } from 'react'
+import { useEffect, Component, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f0f0f', padding: 24, gap: 12 }}>
+          <span style={{ fontSize: 32 }}>⚠️</span>
+          <p style={{ color: '#fff', fontSize: 16, fontWeight: 600, textAlign: 'center' }}>Что-то пошло не так</p>
+          <p style={{ color: '#888', fontSize: 12, textAlign: 'center', wordBreak: 'break-all' }}>{(this.state.error as Error).message}</p>
+          <button onClick={() => window.location.reload()} style={{ marginTop: 8, padding: '10px 24px', borderRadius: 12, background: '#4CAF50', color: '#fff', border: 'none', fontSize: 14, fontWeight: 600 }}>
+            Перезагрузить
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 import './styles/globals.css'
 import SplashPage from './pages/SplashPage'
 import OnboardingPage from './pages/onboarding/OnboardingPage'
@@ -81,10 +101,14 @@ function Layout() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Layout />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ErrorBoundary>
+            <Layout />
+          </ErrorBoundary>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
