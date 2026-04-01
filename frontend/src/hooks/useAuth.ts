@@ -35,7 +35,8 @@ export function useAuth() {
         setIsReady(true)
       } catch {
         setAuthFailed(true)
-        // НЕ выставляем isReady=true — приложение не рендерится без токена
+        // При ошибке авторизации всё равно показываем приложение — может токен уже есть
+        setIsReady(true)
       } finally {
         authInProgress = false
       }

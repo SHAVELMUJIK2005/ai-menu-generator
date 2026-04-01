@@ -52,8 +52,14 @@ function Layout() {
     if (isReady) initTelegram()
   }, [isReady, initTelegram])
 
-  // Ждём завершения авторизации (токен получен или бэкенд недоступен)
-  if (!isReady) return null
+  // Ждём завершения авторизации
+  if (!isReady) return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f0f0f', gap: 12 }}>
+      <div style={{ width: 36, height: 36, border: '3px solid #4CAF50', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <span style={{ color: '#888', fontSize: 14 }}>Загрузка...</span>
+    </div>
+  )
 
   return (
     <>
