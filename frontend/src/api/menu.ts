@@ -36,7 +36,7 @@ export async function getRawMenu(id: string): Promise<MenuRecord> {
 }
 
 async function pollMenuReady(menuId: string): Promise<GenerateMenuApiResponse> {
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 90; i++) {
     await new Promise((r) => setTimeout(r, 2000))
     const record = await getRawMenu(menuId)
     if (record.status === 'DONE' && record.parsedMenu?.days?.length) {

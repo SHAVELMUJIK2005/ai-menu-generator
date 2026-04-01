@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useBuyPremium } from '../hooks/useSubscription'
+import VortexLogo from './VortexLogo'
 
 export type ErrorType = 'network' | 'server' | 'generation' | 'limit' | 'unknown'
 
@@ -40,42 +41,6 @@ const ERROR_CONFIG: Record<
   },
 }
 
-// SVG авокадо-маскот с грустным лицом и анимацией
-function AvocadoMascot() {
-  return (
-    <svg width="110" height="140" viewBox="0 0 110 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* хвостик */}
-      <rect x="50" y="10" width="10" height="20" rx="5" fill="#795548" />
-      <ellipse cx="55" cy="10" rx="7" ry="8" fill="#4CAF50" />
-      {/* тело */}
-      <ellipse cx="55" cy="95" rx="42" ry="52" fill="#558B2F" />
-      {/* мякоть внешняя */}
-      <ellipse cx="55" cy="100" rx="29" ry="36" fill="#AED581" />
-      {/* мякоть внутренняя */}
-      <ellipse cx="55" cy="102" rx="24" ry="29" fill="#DCEDC8" />
-      {/* косточка */}
-      <ellipse cx="55" cy="104" rx="13" ry="16" fill="#6D4C41" />
-      <ellipse cx="55" cy="102" rx="9" ry="12" fill="#795548" />
-      {/* белки глаз */}
-      <circle cx="44" cy="78" r="6" fill="white" />
-      <circle cx="66" cy="78" r="6" fill="white" />
-      {/* зрачки */}
-      <circle cx="44.5" cy="79" r="3.5" fill="#1A1A2E" />
-      <circle cx="66.5" cy="79" r="3.5" fill="#1A1A2E" />
-      {/* блики */}
-      <circle cx="46" cy="77.5" r="1.2" fill="white" />
-      <circle cx="68" cy="77.5" r="1.2" fill="white" />
-      {/* брови грустные */}
-      <path d="M 38 70 Q 44 67 50 70" stroke="#33691E" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <path d="M 60 70 Q 66 67 72 70" stroke="#33691E" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      {/* рот грустный */}
-      <path d="M 46 92 Q 55 86 64 92" stroke="#33691E" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      {/* слезинки */}
-      <path d="M 43 85 Q 42 90 40 94" stroke="#64B5F6" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.8" />
-      <path d="M 67 85 Q 68 90 70 94" stroke="#64B5F6" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.8" />
-    </svg>
-  )
-}
 
 interface ErrorScreenProps {
   type?: ErrorType
@@ -100,18 +65,12 @@ export default function ErrorScreen({ type = 'unknown', onRetry, message }: Erro
       className="flex flex-col items-center justify-center min-h-screen p-8 text-center"
       style={{ background: 'var(--color-bg)' }}
     >
-      {/* Авокадо с покачиванием */}
       <motion.div
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 18 }}
       >
-        <motion.div
-          animate={{ y: [0, -8, 0] }}
-          transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-        >
-          <AvocadoMascot />
-        </motion.div>
+        <VortexLogo size={90} animate={false} />
       </motion.div>
 
       <motion.div
