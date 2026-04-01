@@ -36,6 +36,17 @@ export const useMenuStore = create<MenuState>()(
         })),
       clear: () => set({ currentMenu: null, currentMenuId: null }),
     }),
-    { name: 'menu-store' },
+    {
+      name: 'menu-store',
+      version: 1,
+      migrate: () => ({
+        currentMenu: null,
+        currentMenuId: null,
+        pendingMenuId: null,
+        budget: 3000,
+        days: 3 as const,
+        likedMeals: [],
+      }),
+    },
   ),
 )

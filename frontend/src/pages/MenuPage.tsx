@@ -375,7 +375,9 @@ export default function MenuPage() {
   const daysCount = useMenuStore((s) => s.days)
   const setMenu = useMenuStore((s) => s.setMenu)
 
-  if (!currentMenu) {
+  if (!currentMenu || !Array.isArray(currentMenu.days) || currentMenu.days.length === 0) {
+    // Битые данные в localStorage — чистим стор
+    if (currentMenu) useMenuStore.getState().clear()
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-8 text-center" style={{ background: 'var(--color-bg)' }}>
         <span className="text-5xl">🥗</span>
@@ -394,11 +396,6 @@ export default function MenuPage() {
   }
 
   const menu = currentMenu
-  // Защита от старого/битого меню в localStorage
-  if (!menu.days || !Array.isArray(menu.days) || menu.days.length === 0) {
-    useMenuStore.getState().clear()
-    return null
-  }
   const safeIndex = Math.min(activeDay, menu.days.length - 1)
   const day = menu.days[safeIndex]
 
