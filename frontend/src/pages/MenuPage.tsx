@@ -394,7 +394,13 @@ export default function MenuPage() {
   }
 
   const menu = currentMenu
-  const day = menu.days[activeDay]
+  // Защита от старого/битого меню в localStorage
+  if (!menu.days || !Array.isArray(menu.days) || menu.days.length === 0) {
+    useMenuStore.getState().clear()
+    return null
+  }
+  const safeIndex = Math.min(activeDay, menu.days.length - 1)
+  const day = menu.days[safeIndex]
 
   const { mutate: reroll, isPending: rerolling } = useRerollMenu()
   const { data: favorites } = useFavorites()
