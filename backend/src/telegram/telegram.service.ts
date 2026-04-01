@@ -90,29 +90,32 @@ export class TelegramService implements OnModuleInit {
 
     // Команда /premium <telegramId> — тоггл Premium (только для администраторов)
     this.bot.command("premium", async (ctx: Context) => {
-      const adminIds = new Set(
-        (process.env.ADMIN_TELEGRAM_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-      );
-
-      const callerId = String(ctx.from?.id);
-      if (!adminIds.has(callerId)) {
-        return ctx.reply("⛔ Нет доступа");
-      }
-
-      const text = ctx.message && "text" in ctx.message ? ctx.message.text : "";
-      const targetId = text.split(" ")[1]?.trim();
-
-      if (!targetId || !/^\d+$/.test(targetId)) {
-        return ctx.reply("Использование: /premium <telegramId>\nПример: /premium 123456789");
-      }
-
       try {
+        const adminIds = new Set(
+          (process.env.ADMIN_TELEGRAM_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+        );
+
+        const callerId = String(ctx.from?.id ?? "");
+        if (!adminIds.has(callerId)) {
+          await ctx.reply("⛔ Нет доступа");
+          return;
+        }
+
+        const text = "text" in ctx.message! ? (ctx.message!.text as string) : "";
+        const targetId = text.split(/\s+/)[1]?.trim() ?? "";
+
+        if (!targetId || !/^\d+$/.test(targetId)) {
+          await ctx.reply("Использование: /premium <telegramId>\nПример: /premium 123456789");
+          return;
+        }
+
         const result = await this.subscriptionService.togglePremiumByTelegramId(targetId);
         const status = result.isPremium ? "✅ Premium включён" : "❌ Premium отключён";
-        return ctx.reply(`${status}\nПользователь: ${result.name}\nTelegram ID: ${targetId}`);
+        await ctx.reply(`${status}\nПользователь: ${result.name}\nTelegram ID: ${targetId}`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "неизвестная ошибка";
-        return ctx.reply(`⚠️ Ошибка: ${msg}`);
+        this.logger.error("Ошибка в команде /premium:", e);
+        await ctx.reply(`⚠️ Ошибка: ${msg}`).catch(() => {});
       }
     });
 
