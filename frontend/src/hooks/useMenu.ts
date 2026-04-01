@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { generateMenu, getMenu, getMenuHistory, rerollMenu, rateMenu, substituteMenu } from '../api/menu'
+import { generateMenu, getRawMenu, getMenuHistory, rerollMenu, rateMenu, substituteMenu } from '../api/menu'
 import type { GenerateMenuRequest } from '../types'
 
 export function useGenerateMenu() {
@@ -24,7 +24,7 @@ export function useMenuHistory(page = 1) {
 export function useMenuStatus(id: string) {
   return useQuery({
     queryKey: ['menu', id],
-    queryFn: () => getMenu(id),
+    queryFn: () => getRawMenu(id),
     enabled: !!id,
     refetchInterval: (query) => {
       const status = (query.state?.data as { status?: string } | undefined)?.status

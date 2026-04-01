@@ -1,14 +1,28 @@
 import { apiClient } from './client'
 import type { GenerateMenuRequest, MenuResponse } from '../types'
 
-// Бэкенд возвращает MenuResponse + id созданного меню
+// Реальная структура ответа GET /menu/:id от Prisma
+interface MenuRecord {
+  id: string
+  status: 'PENDING' | 'DONE' | 'ERROR' | 'FAILED'
+  parsedMenu: MenuResponse | null
+  daysCount: number
+  budgetInput: number
+}
+
+export interface GeneratePendingResponse {
+  menuId: string
+  status: string
+}
+
 export interface GenerateMenuApiResponse extends MenuResponse {
   id: string
 }
 
 export async function generateMenu(request: GenerateMenuRequest): Promise<GenerateMenuApiResponse> {
-  const { data } = await apiClient.post<GenerateMenuApiResponse>('/menu/generate', request)
-  return data
+  const { data } = await apiClient.post<GeneratePendingResponse>('/menu/generate', request)
+  // Бэкенд вернул PENDING — поллим до готовности (макс 120 сек)
+  return pollMenuReady(data.menuId)
 }
 
 export async function getMenuHistory(page = 1, limit = 20) {
@@ -16,28 +30,36 @@ export async function getMenuHistory(page = 1, limit = 20) {
   return data
 }
 
-export async function getMenu(id: string): Promise<MenuResponse> {
-  const { data } = await apiClient.get<MenuResponse>(`/menu/${id}`)
+export async function getRawMenu(id: string): Promise<MenuRecord> {
+  const { data } = await apiClient.get<MenuRecord>(`/menu/${id}`)
   return data
 }
 
-interface RerollPending {
-  menuId: string
-  status: 'PENDING' | 'DONE'
+async function pollMenuReady(menuId: string): Promise<GenerateMenuApiResponse> {
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 2000))
+    const record = await getRawMenu(menuId)
+    if (record.status === 'DONE' && record.parsedMenu?.days?.length) {
+      return { ...record.parsedMenu, id: menuId }
+    }
+    if (record.status === 'FAILED' || record.status === 'ERROR') {
+      throw new Error('Генерация меню завершилась с ошибкой')
+    }
+  }
+  throw new Error('Timeout: меню не готово за 2 минуты')
 }
 
 export async function rerollMenu(id: string): Promise<MenuResponse> {
-  const { data } = await apiClient.post<RerollPending>(`/menu/${id}/reroll`)
-
-  // Бэкенд вернул PENDING — поллим до готовности (макс 60 сек)
+  const { data } = await apiClient.post<GeneratePendingResponse>(`/menu/${id}/reroll`)
   const targetId = data.menuId ?? id
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 2000))
-    try {
-      const menu = await getMenu(targetId)
-      if (menu.days?.length) return menu
-    } catch {
-      // ещё не готово, ждём следующей итерации
+    const record = await getRawMenu(targetId)
+    if (record.status === 'DONE' && record.parsedMenu?.days?.length) {
+      return { ...record.parsedMenu, id: targetId } as MenuResponse
+    }
+    if (record.status === 'FAILED' || record.status === 'ERROR') {
+      throw new Error('Перегенерация завершилась с ошибкой')
     }
   }
   throw new Error('Reroll timeout')
