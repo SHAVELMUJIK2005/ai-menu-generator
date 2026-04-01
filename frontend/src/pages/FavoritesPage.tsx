@@ -4,7 +4,7 @@ import { ArrowLeft, Bookmark, Trash2 } from 'lucide-react'
 import { useFavorites, useRemoveFavorite } from '../hooks/useFavorites'
 import { useMenuStore } from '../store/menuStore'
 import { useHaptic } from '../hooks/useTelegram'
-import { getMenu } from '../api/menu'
+import { getRawMenu } from '../api/menu'
 
 export default function FavoritesPage() {
   const navigate = useNavigate()
@@ -16,9 +16,11 @@ export default function FavoritesPage() {
   const handleOpen = async (menuId: string) => {
     impact('light')
     try {
-      const menu = await getMenu(menuId)
-      setMenu(menu, menuId)
-      navigate('/menu')
+      const record = await getRawMenu(menuId)
+      if (record.status === 'DONE' && record.parsedMenu) {
+        setMenu(record.parsedMenu, menuId)
+        navigate('/menu')
+      }
     } catch {
       // меню недоступно
     }
